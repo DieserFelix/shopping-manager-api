@@ -1,0 +1,12 @@
+[style]
+based_on_style = facebook
+spaces_before_comment = 4
+column_limit = 150
+#arithmetic_precedence_indication = True
+#dedent_closing_brackets = True
+force_multiline_dict = True
+indent_dictionary_value = False
+#split_before_first_argument = True
+#split_complex_comprehension = True
+
+
