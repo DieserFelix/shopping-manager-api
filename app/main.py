@@ -3,6 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 import app.routers as routers
 
+# from app.db import Base, engine
+# from app.db.models import User
+# Base.metadata.create_all(engine)
+
 app = FastAPI()
 origins = [
     "http://localhost:3000",
