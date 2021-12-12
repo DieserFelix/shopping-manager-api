@@ -1,4 +1,3 @@
-
 def get_db():
     from app.db import SessionLocal
     db = SessionLocal()
