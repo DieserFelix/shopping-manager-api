@@ -3,9 +3,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 import app.routers as routers
 
-# from app.db import Base, engine
-# from app.db.models import User
-# Base.metadata.create_all(engine)
+create_db = False
+if create_db:
+    from app.db import Base, engine
+    from app.db.models import User, \
+                              Entity, entity_hierarchy, \
+                              EntityType, ListEntityType, ProductEntityType, \
+                              Category, Store, Price
+
+    Base.metadata.create_all(engine)
 
 app = FastAPI()
 origins = [
@@ -22,7 +28,7 @@ app.add_middleware(
 
 for router in routers.routers:
     app.include_router(router)
-    
+
 app.openapi_schema = get_openapi(
     title="Shopping Manager API",
     version="1.0",

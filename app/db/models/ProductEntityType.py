@@ -1,8 +1,9 @@
 from __future__ import annotations
-from typing import Any
+from typing import Any, List
 from app.db import Base
 from sqlalchemy import Column, Integer, ForeignKey, String, Text, Boolean, Float, DateTime
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, relationship
+import app.db.models as models
 
 
 class ProductEntityType(Base):
@@ -17,3 +18,9 @@ class ProductEntityType(Base):
     category_id: int = Column(Integer, ForeignKey("Category.id"), nullable=True)
 
     username: str = Column(String(32), ForeignKey("User.username", ondelete="CASCADE"), nullable=False)
+
+    category: models.Category = relationship("Category", back_populates="product_entity_types", uselist=False)
+    store: models.Store = relationship("Store", back_populates="product_entity_types", uselist=False)
+    prices: List[models.Price] = relationship("Price", back_populates="product", cascade="all, delete")
+    entity_type: models.EntityType = relationship("EntityType", back_populates="list_entity_type", uselist=False)
+    user: models.User = relationship("User", back_populates="product_entity_types")
