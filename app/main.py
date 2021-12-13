@@ -2,9 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 import app.routers as routers
+from app.lib.environment import CREATE_DATABASE
 
-create_db = False
-if create_db:
+if CREATE_DATABASE:
     from app.db import Base, engine
     from app.db.models import User, \
                               Entity, entity_hierarchy, \
