@@ -1,9 +1,12 @@
 from __future__ import annotations
 from typing import Any, List
+
+import bleach
 from app.db import Base
 from sqlalchemy import Column, Integer, ForeignKey, String, Text, Boolean, Float, DateTime
 from sqlalchemy.orm import Session, relationship
 import app.db.models as models
+from app.lib.UserRoles import UserRoles
 
 
 class Store(Base):
@@ -17,3 +20,49 @@ class Store(Base):
 
     product_entity_types: List[models.ProductEntityType] = relationship("ProductEntityType", back_populates="store")
     user: models.User = relationship("User", back_populates="stores")
+
+    def __str__(self) -> str:
+        return self.name
+
+    @staticmethod
+    def get(store_id: Any, user: models.User, db: Session) -> Store:
+        try:
+            store_id = int(store_id)
+        except:
+            raise LookupError(f"Invalid store ID: {store_id}")
+
+        store = db.query(Store).filter(Store.id == store_id).first()
+        if store is None:
+            raise LookupError(f"No such store: {store_id}")
+        if user.role != UserRoles.ADMIN:
+            if store not in user.stores:
+                raise LookupError(f"No such store: {store_id}")
+
+        return store
+
+    @staticmethod
+    def find(name: Any, user: models.User) -> List[Store]:
+        if not isinstance(name, str) or not name:
+            raise LookupError("Invalid name")
+
+        name = bleach.clean(name, tags=[])
+
+        stores: List[Store] = []
+        for store in user.stores:
+            if name in store.name:
+                stores.append(store)
+
+        return stores
+
+    @staticmethod
+    def process_name(name: Any, user: models.User) -> str:
+        if not isinstance(name, str) or not name:
+            raise LookupError("Invalid name")
+
+        name = bleach.clean(name, tags=[])
+
+        names = [store.name for store in user.stores]
+        if name in names:
+            raise LookupError(f"Store {name} already exists")
+
+        return name

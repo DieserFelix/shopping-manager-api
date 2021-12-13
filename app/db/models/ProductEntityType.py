@@ -22,5 +22,5 @@ class ProductEntityType(Base):
     category: models.Category = relationship("Category", back_populates="product_entity_types", uselist=False)
     store: models.Store = relationship("Store", back_populates="product_entity_types", uselist=False)
     prices: List[models.Price] = relationship("Price", back_populates="product", cascade="all, delete")
-    entity_type: models.EntityType = relationship("EntityType", back_populates="list_entity_type", uselist=False)
+    entity_type: models.EntityType = relationship("EntityType", back_populates="product_entity_type", uselist=False)
     user: models.User = relationship("User", back_populates="product_entity_types")
