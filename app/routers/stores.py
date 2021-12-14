@@ -20,13 +20,18 @@ stores = APIRouter(
 @stores.get(
     "/",
     response_model=List[schemas.Store],
-    responses={200: dict(description="List of stores created by the current user, possible filtered by name.")}
+    responses={
+        200: dict(description="List of stores created by the current user, possibly filtered by name."),
+        400: dict(description="Invalid name for filter.", model=schemas.HTTPError)
+    }
 )
 def read_stores(filter: str = None, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         stores = [store for store in auth_user.stores]
         if filter:
-            stores = [store for store in stores if filter.lower() in store.name.lower()]
+            stores = Store.find(filter, auth_user)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     else:

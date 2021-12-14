@@ -3,5 +3,6 @@
 from app.routers.users import users
 from app.routers.stores import stores
 from app.routers.categories import categories
+from app.routers.products import products
 
-routers = [users, stores, categories]
+routers = [users, stores, categories, products]

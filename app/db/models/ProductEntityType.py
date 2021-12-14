@@ -31,11 +31,13 @@ class ProductEntityType(Base):
     def __str__(self) -> str:
         return self.name
 
-    def price(self, at: datetime = None):
+    def price(self, at: datetime = None) -> models.Price:
         prices = sorted(self.prices, key=lambda price: price.valid_at, reverse=True)
-        for price in prices:
-            if price.valid_at <= at:
-                return price
+        if at:
+            for price in prices:
+                if price.valid_at <= at:
+                    return price
+                return prices[-1]
         return prices[0]
 
     @staticmethod
@@ -57,34 +59,34 @@ class ProductEntityType(Base):
     @staticmethod
     def find(name: Any, user: models.User) -> List[ProductEntityType]:
         if not isinstance(name, str) or not name:
-            raise LookupError("Invalid name")
+            raise ValueError("Invalid name")
 
-        name = bleach.clean(name, tags=[])
+        name: str = bleach.clean(name.strip(), tags=[])
 
         product_entity_types: List[ProductEntityType] = []
         for product_entity_type in user.product_entity_types:
-            if name in product_entity_type.name:
+            if name.lower() in product_entity_type.name.lower():
                 product_entity_types.append(product_entity_type)
 
         return product_entity_types
 
     @staticmethod
-    def process_name(name: Any, user: models.User) -> str:
+    def process_name(name: Any, user: models.User, current_name: str = None) -> str:
         if not isinstance(name, str) or not name:
-            raise LookupError("Invalid name")
+            raise ValueError("Invalid name")
 
-        name = bleach.clean(name, tags=[])
+        name: str = bleach.clean(name.strip(), tags=[])
 
-        names = [product_entity_type.name for product_entity_type in user.product_entity_types]
-        if name in names:
-            raise LookupError(f"Product {name} already exists")
+        names = [product_entity_type.name.lower() for product_entity_type in user.product_entity_types if product_entity_type.name != current_name]
+        if name.lower() in names:
+            raise ValueError(f"Product {name} already exists")
 
         return name
 
     @staticmethod
     def process_detail(detail: Any) -> str:
         if not isinstance(detail, str):
-            raise LookupError("Invalid product detail")
+            raise ValueError("Invalid product detail")
 
         detail = bleach.clean(detail, tags=[])
 

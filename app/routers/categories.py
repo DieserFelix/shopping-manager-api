@@ -18,13 +18,18 @@ categories = APIRouter(
 @categories.get(
     "/",
     response_model=List[schemas.Category],
-    responses={200: dict(description="List of categories created by the current user, possible filtered by name.")}
+    responses={
+        200: dict(description="List of categories created by the current user, possibly filtered by name."),
+        400: dict(description="Invalid name for filter.", model=schemas.HTTPError)
+    }
 )
 def read_categories(filter: str = None, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         categories = [category for category in auth_user.categories]
         if filter:
-            categories = [category for category in categories if filter.lower() in category.name.lower()]
+            categories = Category.find(filter, auth_user)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     else:

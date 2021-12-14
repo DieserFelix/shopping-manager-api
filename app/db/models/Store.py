@@ -43,13 +43,13 @@ class Store(Base):
     @staticmethod
     def find(name: Any, user: models.User) -> List[Store]:
         if not isinstance(name, str) or not name:
-            raise LookupError("Invalid name")
+            raise ValueError("Invalid name")
 
-        name = bleach.clean(name, tags=[])
+        name: str = bleach.clean(name.strip(), tags=[])
 
         stores: List[Store] = []
         for store in user.stores:
-            if name in store.name:
+            if name.lower() in store.name.lower():
                 stores.append(store)
 
         return stores

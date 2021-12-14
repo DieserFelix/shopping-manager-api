@@ -44,13 +44,13 @@ class Category(Base):
     @staticmethod
     def find(name: Any, user: models.User) -> List[Category]:
         if not isinstance(name, str) or not name:
-            raise LookupError("Invalid name")
+            raise ValueError("Invalid name")
 
-        name = bleach.clean(name, tags=[])
+        name: str = bleach.clean(name.strip(), tags=[])
 
         categories: List[Category] = []
         for category in user.categories:
-            if name in category.name:
+            if name.lower() in category.name.lower():
                 categories.append(category)
 
         return categories
@@ -60,10 +60,10 @@ class Category(Base):
         if not isinstance(name, str) or not name:
             raise LookupError("Invalid name")
 
-        name = bleach.clean(name.strip(), tags=[])
+        name: str = bleach.clean(name.strip(), tags=[])
 
         names = [category.name.lower() for category in user.categories if category.name != current_name]
-        if name in names:
+        if name.lower() in names:
             raise LookupError(f"Category {name} already exists")
 
         return name
