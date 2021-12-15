@@ -148,6 +148,7 @@ def update_list(list: schemas.ListUpdate, auth_user: User = Depends(get_current_
             current_list.category = category
         if list.finalized is not None:
             current_list.finalized = list.finalized
+            current_list.updated_at = datetime.utcnow()
 
         db.commit()
     except LookupError as e:
