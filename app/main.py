@@ -7,9 +7,9 @@ from app.lib.environment import CREATE_DATABASE
 if CREATE_DATABASE:
     from app.db import Base, engine
     from app.db.models import User, \
-                              Entity, entity_hierarchy, \
-                              EntityType, ListEntityType, ProductEntityType, \
-                              Category, Store, Price
+                              Article, \
+                              Category, Store, Price, \
+                              ShoppingList, ShoppingListItem, ShoppingListCost
 
     Base.metadata.create_all(engine)
 

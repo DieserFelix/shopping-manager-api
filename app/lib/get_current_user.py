@@ -17,8 +17,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
         from app.db.models import User
         current_user = User.get(username, db)
-
-        if datetime.utcnow() > expires_at:
+        if datetime.utcnow() > datetime.fromtimestamp(expires_at):
             current_user.logged_in = False
             db.commit()
 

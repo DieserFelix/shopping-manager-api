@@ -1,12 +1,11 @@
 from __future__ import annotations
 from typing import Any, List
 from app.db import Base
-from app.db.models import Entity
-from app.lib.environment import SALT
 from sqlalchemy import Column, String, Text, Boolean
 from sqlalchemy.orm import Session, relationship
 import bleach, re, hashlib
 import app.db.models as models
+import app.lib.environment as env
 
 
 class User(Base):
@@ -19,10 +18,9 @@ class User(Base):
     role: str = Column(Text, nullable=False)
     logged_in: bool = Column(Boolean, default=False)
 
-    entities: List[models.Entity] = relationship("Entity", back_populates="user", cascade="all, delete, delete-orphan")
-    entity_types: List[models.EntityType] = relationship("EntityType", back_populates="user", cascade="all, delete, delete-orphan")
-    list_entity_types: List[models.ListEntityType] = relationship("ListEntityType", back_populates="user", cascade="all, delete, delete-orphan")
-    product_entity_types: List[models.ProductEntityType] = relationship("ProductEntityType", back_populates="user", cascade="all, delete, delete-orphan") #yapf: disable
+    lists: List[models.ShoppingList] = relationship("ShoppingList", back_populates="user", cascade="all, delete, delete-orphan")
+    list_items: List[models.ShoppingListItem] = relationship("ShoppingListItem", back_populates="user", cascade="all, delete, delete-orphan")
+    articles: List[models.Article] = relationship("Article", back_populates="user", cascade="all, delete, delete-orphan")
     categories: List[models.Category] = relationship("Category", back_populates="user", cascade="all, delete, delete-orphan")
     stores: List[models.Store] = relationship("Store", back_populates="user", cascade="all, delete, delete-orphan")
     prices: List[models.Price] = relationship("Price", back_populates="user", cascade="all, delete, delete-orphan")
@@ -79,6 +77,6 @@ class User(Base):
         if not isinstance(password, str) or not password:
             raise ValueError(f"Invalid password")
 
-        hash = hashlib.sha512((password + SALT).encode("UTF-8")).hexdigest()
+        hash = hashlib.sha512((password + env.SALT).encode("UTF-8")).hexdigest()
 
         return hash

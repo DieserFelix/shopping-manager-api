@@ -1,12 +1,11 @@
 from __future__ import annotations
 from typing import Any, List
-
-import bleach
 from app.db import Base
-from sqlalchemy import Column, Integer, ForeignKey, String, Text, Boolean, Float, DateTime
+from sqlalchemy import Column, Integer, ForeignKey, String, Text
 from sqlalchemy.orm import Session, relationship
+import bleach
+import app.lib as lib
 import app.db.models as models
-from app.lib.UserRoles import UserRoles
 
 
 class Category(Base):
@@ -18,8 +17,9 @@ class Category(Base):
 
     username: str = Column(String(32), ForeignKey("User.username", ondelete="CASCADE"), nullable=False)
 
-    list_entity_types: List[models.ListEntityType] = relationship("ListEntityType", back_populates="category")
-    product_entity_types: List[models.ProductEntityType] = relationship("ProductEntityType", back_populates="category")
+    lists: List[models.ShoppingList] = relationship("ShoppingList", back_populates="category")
+    costs: List[models.ShoppingListCost] = relationship("ShoppingListCost", back_populates="category", cascade="all, delete")
+    articles: List[models.Article] = relationship("Article", back_populates="category")
     user: models.User = relationship("User", back_populates="categories")
 
     def __str__(self) -> str:
@@ -35,8 +35,8 @@ class Category(Base):
         category = db.query(Category).filter(Category.id == category_id).first()
         if category is None:
             raise LookupError(f"No such category: {category_id}")
-        if user.role != UserRoles.ADMIN:
-            if category not in user.stores:
+        if user.role != lib.UserRoles.ADMIN:
+            if category not in user.categories:
                 raise LookupError(f"No such category: {category_id}")
 
         return category
@@ -44,26 +44,26 @@ class Category(Base):
     @staticmethod
     def find(name: Any, user: models.User) -> List[Category]:
         if not isinstance(name, str) or not name:
-            raise LookupError("Invalid name")
+            raise ValueError("Invalid name")
 
-        name = bleach.clean(name, tags=[])
+        name: str = bleach.clean(name.strip(), tags=[])
 
         categories: List[Category] = []
         for category in user.categories:
-            if name in category.name:
+            if name.lower() in category.name.lower():
                 categories.append(category)
 
         return categories
 
     @staticmethod
-    def process_name(name: Any, user: models.User) -> str:
+    def process_name(name: Any, user: models.User, current_name: str = None) -> str:
         if not isinstance(name, str) or not name:
             raise LookupError("Invalid name")
 
-        name = bleach.clean(name, tags=[])
+        name: str = bleach.clean(name.strip(), tags=[])
 
-        names = [categories.name for categories in user.categories]
-        if name in names:
+        names = [category.name.lower() for category in user.categories if category.name != current_name]
+        if name.lower() in names:
             raise LookupError(f"Category {name} already exists")
 
         return name
