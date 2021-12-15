@@ -59,6 +59,7 @@ def login(credentials: OAuth2PasswordRequestForm = Depends(), db: Session = Depe
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
     except Exception as e:
+        print(str(e))
         raise HTTPException(status_code=500, detail=str(e))
     else:
         return dict(access_token=create_access_token(dict(sub=current_user.username)), token_type="bearer")
