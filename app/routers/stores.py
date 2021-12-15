@@ -1,7 +1,5 @@
-from typing import List, Optional
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import OAuth2PasswordRequestForm
-from pydantic.errors import DecimalIsNotFiniteError
 from starlette.responses import Response
 from app.db.models import Store, User
 from app.lib import get_current_user, get_db, UserRoles
@@ -121,8 +119,8 @@ def update_store(store: schemas.StoreUpdate, auth_user: User = Depends(get_curre
 def delete_store(store_id: int, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         current_store = Store.get(store_id, auth_user, db)
-        for product_entity_type in current_store.product_entity_types:
-            product_entity_type.store = None
+        for article in current_store.articles:
+            article.store = None
 
         db.delete(current_store)
         db.commit()

@@ -119,10 +119,10 @@ def update_category(category: schemas.CategoryUpdate, auth_user: User = Depends(
 def delete_category(category_id: int, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         current_category = Category.get(category_id, auth_user, db)
-        for list_entity_type in current_category.list_entity_types:
-            list_entity_type.category = None
-        for product_entity_type in current_category.product_entity_types:
-            product_entity_type.category = None
+        for lists in current_category.lists:
+            lists.category = None
+        for articles in current_category.articles:
+            articles.category = None
 
         db.delete(current_category)
         db.commit()

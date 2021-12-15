@@ -19,10 +19,10 @@ class Price(Base):
     valid_at: datetime = Column(DateTime)
     currency: str = Column(String(32), nullable=False)
 
-    product_id: int = Column(Integer, ForeignKey("ProductEntityType.id", ondelete="CASCADE"), nullable=False)
+    article_id: int = Column(Integer, ForeignKey("Article.id", ondelete="CASCADE"), nullable=False)
     username: str = Column(String(32), ForeignKey("User.username", ondelete="CASCADE"), nullable=False)
 
-    product: models.ProductEntityType = relationship("ProductEntityType", back_populates="prices", uselist=False)
+    article: models.Article = relationship("Article", back_populates="prices", uselist=False)
     user: models.User = relationship("User", back_populates="prices")
 
     def __str__(self) -> str:

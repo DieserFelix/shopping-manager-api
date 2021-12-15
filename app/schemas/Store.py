@@ -15,21 +15,21 @@ class StoreUpdate(BaseModel):
 class Store(BaseModel):
     id: int
     name: str
-    product_entity_types: List[Any]
+    articles: List[Any]
 
-    @validator("product_entity_types")
-    def validate_products(cls, products):
-        for i in range(len(products)):
-            products[i] = products[i].id
+    @validator("articles")
+    def validate_articles(cls, articles):
+        for i in range(len(articles)):
+            articles[i] = articles[i].id
 
-        return products
+        return articles
 
     class Config:
         orm_mode = True
 
         def schema_extra(schema: Dict[str, Any]) -> None:
-            schema["properties"]["product_entity_types"] = {
-                "title": "Product Entity Types",
+            schema["properties"]["articles"] = {
+                "title": "Articles",
                 "type": "array",
                 "items": {
                     "type": "integer"

@@ -2,7 +2,7 @@ from typing import Optional
 from pydantic import BaseModel
 
 
-class ProductCreate(BaseModel):
+class ArticleCreate(BaseModel):
     name: str
     detail: Optional[str]
     category_id: int
@@ -10,7 +10,7 @@ class ProductCreate(BaseModel):
     price: float
 
 
-class ProductUpdate(BaseModel):
+class ArticleUpdate(BaseModel):
     id: int
     name: Optional[str]
     detail: Optional[str]
@@ -19,11 +19,12 @@ class ProductUpdate(BaseModel):
     price: Optional[float]
 
 
-class Product(BaseModel):
+class Article(BaseModel):
     id: int
     name: str
     detail: str
     store_id: int
+    category_id: int
 
     class Config:
         orm_mode = True
