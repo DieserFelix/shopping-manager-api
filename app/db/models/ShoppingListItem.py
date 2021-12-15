@@ -25,6 +25,9 @@ class ShoppingListItem(Base):
     def __str__(self) -> str:
         return f"{self.amount}x{self.article.name}"
 
+    def price(self) -> models.Price:
+        return self.article.price(self.parent.updated_at)
+
     @staticmethod
     def get(item_id: Any, user: models.User, db: Session) -> ShoppingListItem:
         try:

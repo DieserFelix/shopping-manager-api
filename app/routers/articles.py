@@ -23,9 +23,10 @@ articles = APIRouter(
 )
 def read_articles(filter: str = None, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
-        articles = auth_user.articles
         if filter:
             articles = Article.find(filter, auth_user)
+        else:
+            articles = auth_user.articles
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

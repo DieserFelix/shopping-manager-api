@@ -42,20 +42,20 @@ class Article(Base):
         return prices[0]
 
     @staticmethod
-    def get(product_id: Any, user: models.User, db: Session) -> Article:
+    def get(article_id: Any, user: models.User, db: Session) -> Article:
         try:
-            product_id = int(product_id)
+            article_id = int(article_id)
         except:
-            raise LookupError(f"Invalid product ID: {product_id}")
+            raise LookupError(f"Invalid article ID: {article_id}")
 
-        product = db.query(Article).filter(Article.id == product_id).first()
-        if product is None:
-            raise LookupError(f"No such product: {product_id}")
+        article = db.query(Article).filter(Article.id == article_id).first()
+        if article is None:
+            raise LookupError(f"No such article: {article_id}")
         if user.role != lib.UserRoles.ADMIN:
-            if product not in user.articles:
-                raise LookupError(f"No such product: {product_id}")
+            if article not in user.articles:
+                raise LookupError(f"No such article: {article_id}")
 
-        return product
+        return article
 
     @staticmethod
     def find(name: Any, user: models.User) -> List[Article]:

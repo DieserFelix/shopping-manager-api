@@ -53,6 +53,25 @@ def read_list(list_id: int, auth_user: User = Depends(get_current_user), db: Ses
         return list
 
 
+@lists.get("/{list_id}/cost")
+def read_list_costs(list_id: int, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    try:
+        list = ShoppingList.get(list_id, auth_user, db)
+        cost = dict()
+        for item in list.children:
+            if item.article.category_id not in cost.keys():
+                cost[item.article.category_id] = 0
+            cost[item.article.category_id] += item.amount * item.price().price
+
+        cost["total"] = sum([cost[category] for category in cost.keys()])
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    else:
+        return cost
+
+
 @lists.post(
     "/",
     response_model=schemas.List,

@@ -29,7 +29,7 @@ class ShoppingList(Base):
 
     def hasArticle(self, article: models.Article) -> bool:
         for child in self.children:
-            if child.id == article.id:
+            if child.article.id == article.id:
                 return True
         return False
 
