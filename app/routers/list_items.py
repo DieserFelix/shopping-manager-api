@@ -27,7 +27,7 @@ list_items = APIRouter(
 def read_items(list_id: int, sort_by: str = None, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         current_list = ShoppingList.get(list_id, auth_user, db)
-        items = current_list.children
+        items = current_list.items
         if sort_by == "name":
             items = sorted(items, key=lambda item: item.article.name)
         elif sort_by == "category":
@@ -53,7 +53,7 @@ def read_items(list_id: int, item_id: int, auth_user: User = Depends(get_current
     try:
         current_list = ShoppingList.get(list_id, auth_user, db)
         current_item = ShoppingListItem.get(item_id, auth_user, db)
-        if current_item not in current_list.children:
+        if current_item not in current_list.items:
             raise LookupError(f"Item {item_id} is not an item of shopping list {list_id}.")
     except LookupError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -77,6 +77,8 @@ def read_items(list_id: int, item_id: int, auth_user: User = Depends(get_current
 def create_item(list_id: int, item: schemas.ListItemCreate, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         list = ShoppingList.get(list_id, auth_user, db)
+        if list.finalized:
+            raise ValueError(f"Item cannot be added to finalized list {list_id}.")
         article = Article.get(item.article_id, auth_user, db)
         if list.hasArticle(article):
             raise ValueError(f"Shopping list {list.id} already contains article {article.name}")
@@ -112,7 +114,8 @@ def create_item(list_id: int, item: schemas.ListItemCreate, auth_user: User = De
 def update_item(list_id: int, item: schemas.ListItemUpdate, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         list = ShoppingList.get(list_id, auth_user, db)
-
+        if list.finalized:
+            raise ValueError(f"Items of finalized list {list_id} cannot be updated.")
         current_item = ShoppingListItem.get(item.id, auth_user, db)
         if item.article_id is not None:
             article = Article.get(item.article_id, auth_user, db)
@@ -122,6 +125,7 @@ def update_item(list_id: int, item: schemas.ListItemUpdate, auth_user: User = De
         if item.amount is not None:
             current_item.amount = ShoppingListItem.process_amount(item.amount)
 
+        list.updated_at = datetime.utcnow()
         db.commit()
     except LookupError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -145,7 +149,10 @@ def update_item(list_id: int, item: schemas.ListItemUpdate, auth_user: User = De
 def delete_item(list_id: int, item_id: int, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         list = ShoppingList.get(list_id, auth_user, db)
+        if list.finalized:
+            raise ValueError(f"Items of finalized list {list_id} cannot be deleted. Delete list instead.")
         current_item = ShoppingListItem.get(item_id, auth_user, db)
+        current_item.parent.updated_at = datetime.utcnow()
 
         db.delete(current_item)
         db.commit()

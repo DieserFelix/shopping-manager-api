@@ -22,16 +22,35 @@ class ShoppingList(Base):
     username: str = Column(String(32), ForeignKey("User.username", ondelete="CASCADE"), nullable=False)
     user: models.User = relationship("User", back_populates="lists")
 
-    children: List[models.ShoppingListItem] = relationship("ShoppingListItem", back_populates="parent", cascade="all, delete")
+    items: List[models.ShoppingListItem] = relationship("ShoppingListItem", back_populates="parent", cascade="all, delete")
+    costs: List[models.ShoppingListCost] = relationship("ShoppingListCost", back_populates="list", cascade="all, delete")
 
     def __str__(self) -> str:
         return self.title
 
     def hasArticle(self, article: models.Article) -> bool:
-        for child in self.children:
-            if child.article.id == article.id:
+        for item in self.items:
+            if item.article.id == article.id:
                 return True
         return False
+
+    def areCostsUpToDate(self) -> bool:
+        if not self.costs:
+            return False
+        for cost in self.costs:
+            if cost.valid_at != self.updated_at:
+                return False
+        return True
+
+    def cost(self):
+        cost = dict()
+        for item in self.items:
+            if item.article.category_id not in cost.keys():
+                cost[item.article.category_id] = 0
+            cost[item.article.category_id] += item.amount * item.price().price
+
+        cost["total"] = sum([cost[category] for category in cost.keys()])
+        return cost
 
     @staticmethod
     def get(list_id: Any, user: models.User, db: Session) -> ShoppingList:

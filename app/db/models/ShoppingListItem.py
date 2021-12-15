@@ -20,7 +20,7 @@ class ShoppingListItem(Base):
     article: models.Article = relationship("Article", back_populates="instances")
     user: models.User = relationship("User", back_populates="list_items")
 
-    parent: models.ShoppingList = relationship("ShoppingList", back_populates="children")
+    parent: models.ShoppingList = relationship("ShoppingList", back_populates="items")
 
     def __str__(self) -> str:
         return f"{self.amount}x{self.article.name}"

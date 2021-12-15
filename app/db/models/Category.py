@@ -18,6 +18,7 @@ class Category(Base):
     username: str = Column(String(32), ForeignKey("User.username", ondelete="CASCADE"), nullable=False)
 
     lists: List[models.ShoppingList] = relationship("ShoppingList", back_populates="category")
+    costs: List[models.ShoppingListCost] = relationship("ShoppingListCost", back_populates="category", cascade="all, delete")
     articles: List[models.Article] = relationship("Article", back_populates="category")
     user: models.User = relationship("User", back_populates="categories")
 

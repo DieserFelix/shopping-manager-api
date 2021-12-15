@@ -9,7 +9,7 @@ if CREATE_DATABASE:
     from app.db.models import User, \
                               Article, \
                               Category, Store, Price, \
-                              ShoppingList, ShoppingListItem
+                              ShoppingList, ShoppingListItem, ShoppingListCost
 
     Base.metadata.create_all(engine)
 

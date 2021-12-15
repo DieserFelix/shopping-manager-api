@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from starlette.responses import Response
-from app.db.models import User, Category, ShoppingList, ShoppingListItem
+from app.db.models import User, Category, ShoppingList, ShoppingListCost
 from app.lib import get_current_user, get_db, UserRoles
 import app.schemas as schemas
 from sqlalchemy.orm import Session
@@ -53,23 +53,44 @@ def read_list(list_id: int, auth_user: User = Depends(get_current_user), db: Ses
         return list
 
 
-@lists.get("/{list_id}/cost")
+@lists.get(
+    "/{list_id}/costs",
+    responses={
+        200: dict(description="Costs of shopping list <list_id>. Total and by category."),
+        404: dict(description="Shopping list <list_id> does not exist.", model=schemas.HTTPError)
+    }
+)
 def read_list_costs(list_id: int, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         list = ShoppingList.get(list_id, auth_user, db)
-        cost = dict()
-        for item in list.children:
-            if item.article.category_id not in cost.keys():
-                cost[item.article.category_id] = 0
-            cost[item.article.category_id] += item.amount * item.price().price
+        if list.areCostsUpToDate():
+            costs = dict()
+            for cost in list.costs:
+                if cost.category:
+                    costs[cost.category.id] = cost.cost
+                else:
+                    costs["total"] = cost.cost
+        else:
+            for cost in list.costs:
+                db.delete(cost)
+            costs = list.cost()
+            for category_id, cost in costs.items():
+                if category_id == "total":
+                    category_id = None
+                current_cost = ShoppingListCost()
+                current_cost.cost = cost
+                current_cost.category_id = category_id
+                current_cost.valid_at = list.updated_at
+                current_cost.list_id = list.id
+                db.add(current_cost)
+            db.commit()
 
-        cost["total"] = sum([cost[category] for category in cost.keys()])
     except LookupError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     else:
-        return cost
+        return costs
 
 
 @lists.post(

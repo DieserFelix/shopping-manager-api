@@ -6,3 +6,4 @@ from app.db.models.Store import Store
 from app.db.models.Price import Price
 from app.db.models.ShoppingList import ShoppingList
 from app.db.models.ShoppingListItem import ShoppingListItem
+from app.db.models.ShoppingListCost import ShoppingListCost
