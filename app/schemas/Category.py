@@ -43,7 +43,7 @@ class Category(BaseModel):
                     "type": "integer"
                 }
             }
-            schema["properties"]["Articles"] = {
+            schema["properties"]["articles"] = {
                 "title": "Articles",
                 "type": "array",
                 "items": {
