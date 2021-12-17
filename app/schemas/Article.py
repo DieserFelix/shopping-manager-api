@@ -1,5 +1,6 @@
-from typing import Optional
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
+from pydantic.class_validators import validator
 
 
 class ArticleCreate(BaseModel):
@@ -19,20 +20,41 @@ class ArticleUpdate(BaseModel):
     price: Optional[float]
 
 
-class Article(BaseModel):
-    id: int
-    name: str
-    detail: str
-    store_id: int
-    category_id: int
-
-    class Config:
-        orm_mode = True
-
-
 class Price(BaseModel):
     price: float
     currency: str
 
     class Config:
         orm_mode = True
+
+
+class Article(BaseModel):
+    id: int
+    name: str
+    detail: str
+    store_id: int
+    category_id: int
+    price: Any
+
+    @validator("price")
+    def validate_price(cls, price):
+        return price()
+
+    class Config:
+        orm_mode = True
+
+        def schema_extra(schema: Dict[str, Any]) -> None:
+            schema["properties"]["price"] = {
+                "title": "Price",
+                "type": "object",
+                "properties": {
+                    "price": {
+                        "title": "Price",
+                        "type": "number"
+                    },
+                    "currency": {
+                        "title": "Currency",
+                        "type": "string"
+                    }
+                }
+            }
