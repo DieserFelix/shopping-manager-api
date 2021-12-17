@@ -65,7 +65,7 @@ def login(credentials: OAuth2PasswordRequestForm = Depends(), db: Session = Depe
         return dict(access_token=create_access_token(dict(sub=current_user.username)), token_type="bearer")
 
 
-@users.get(
+@users.post(
     "/logout",
     status_code=204,
     responses={
