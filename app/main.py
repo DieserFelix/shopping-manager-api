@@ -16,6 +16,7 @@ if CREATE_DATABASE:
 app = FastAPI()
 origins = [
     "http://localhost:3000",
+    "http://localhost:8080",
 ]
 
 app.add_middleware(
