@@ -55,7 +55,27 @@ def read_article(article_id: int, auth_user: User = Depends(get_current_user), d
 
 
 @articles.get(
-    "/{article_id}/price",
+    "/{article_id}/prices",
+    response_model=List[schemas.Price],
+    responses={
+        200: dict(description="Prices of article <article_id>."),
+        404: dict(description="Article <article_id> does not exist.", model=schemas.HTTPError)
+    }
+)
+def read_article_prices(article_id: int, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    try:
+        article = Article.get(article_id, auth_user, db)
+        prices = article.prices
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    else:
+        return prices
+
+
+@articles.get(
+    "/{article_id}/prices",
     response_model=schemas.Price,
     responses={
         200: dict(description="Price of article <article_id> valid at <at>."),
