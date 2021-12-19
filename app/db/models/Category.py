@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any, List
 from app.db import Base
-from sqlalchemy import Column, Integer, ForeignKey, String, Text, DateTime
+from sqlalchemy import Column, Integer, ForeignKey, String, Text, DateTime, func
 from sqlalchemy.orm import Session, relationship
 from datetime import datetime
 import bleach
@@ -51,7 +51,7 @@ class Category(Base):
 
         category_name = bleach.clean(category_name.strip(), tags=[])
 
-        category = db.query(Category).filter(Category.name == category_name).first()
+        category = db.query(Category).filter(func.lower(Category.name) == func.lower(category_name)).first()
         if category is None:
             raise LookupError(f"No such category: {category_name}")
         if user.role != lib.UserRoles.ADMIN:
@@ -69,7 +69,7 @@ class Category(Base):
 
         categories: List[Category] = []
         for category in user.categories:
-            if name.lower() in category.name.lower():
+            if name.casefold() in category.name.casefold():
                 categories.append(category)
 
         return categories
@@ -81,8 +81,8 @@ class Category(Base):
 
         name: str = bleach.clean(name.strip(), tags=[])
 
-        names = [category.name.lower() for category in user.categories if category.name != current_name]
-        if name.lower() in names:
+        names = [category.name.casefold() for category in user.categories if category.name != current_name]
+        if name.casefold() in names:
             raise LookupError(f"Category {name} already exists")
 
         return name

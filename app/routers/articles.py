@@ -39,6 +39,7 @@ def read_articles(
     try:
         if page < 1 or limit < 1:
             raise ValueError(f"Invalid pagination parameters")
+        page -= 1
 
         articles: List[Article]
         if name:
@@ -53,15 +54,15 @@ def read_articles(
 
         articles = sorted(
             articles,
-            key=lambda article: article.name if sort_by == ArticleColumns.NAME else article.updated_at,
-            reverse=asc == PaginationDefaults.ASC
+            key=lambda article: article.name.lower() if sort_by == ArticleColumns.NAME else article.updated_at,
+            reverse=asc != PaginationDefaults.ASC
         )
 
-        if (page - 1) * limit >= len(articles):
-            raise LookupError(f"Requested page does not exist")
-
-        articles = articles[(page - 1) * limit:page * limit + limit]
-
+        if page * limit >= len(articles):
+            articles = []
+        else:
+            articles = articles[page * limit:page * limit + limit]
+        print([a.name for a in articles])
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except LookupError as e:
@@ -142,6 +143,7 @@ def read_article_price(article_id: int, at: datetime = None, auth_user: User = D
     }
 )
 def create_article(article: schemas.ArticleCreate, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    print(article)
     try:
         current_article = Article()
         current_article.name = Article.process_name(article.name, auth_user)
@@ -185,6 +187,7 @@ def create_article(article: schemas.ArticleCreate, auth_user: User = Depends(get
     }
 )
 def update_article(article: schemas.ArticleUpdate, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    print(article)
     try:
         current_article = Article.get(article.id, auth_user, db)
         if article.name is not None:
@@ -198,7 +201,7 @@ def update_article(article: schemas.ArticleUpdate, auth_user: User = Depends(get
             category = Category.byName(article.category, auth_user, db)
             current_article.category_id = category.id
         if article.price is not None:
-            if current_article.price().price != article.price:
+            if current_article.price().price != article.price.price:
                 current_price = Price()
                 current_price.price = article.price.price
                 current_price.created_at = datetime.utcnow()

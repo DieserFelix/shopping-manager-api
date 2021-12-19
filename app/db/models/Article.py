@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, List
 from app.db import Base
-from sqlalchemy import Column, Integer, ForeignKey, String, Text, DateTime
+from sqlalchemy import Column, Integer, ForeignKey, String, Text, DateTime, func
 from sqlalchemy.orm import Session, relationship
 import bleach
 import app.lib as lib
@@ -66,7 +66,7 @@ class Article(Base):
 
         article_name = bleach.clean(article_name.strip(), tags=[])
 
-        article = db.query(Article).filter(Article.name == article_name).first()
+        article = db.query(Article).filter(func.lower(Article.name) == func.lower(article_name)).first()
         if article is None:
             raise LookupError(f"No such article: {article_name}")
         if user.role != lib.UserRoles.ADMIN:
@@ -84,7 +84,7 @@ class Article(Base):
 
         products: List[Article] = []
         for product in user.articles:
-            if name.lower() in product.name.lower():
+            if name.casefold() in product.name.casefold():
                 products.append(product)
 
         return products
@@ -96,8 +96,8 @@ class Article(Base):
 
         name: str = bleach.clean(name.strip(), tags=[])
 
-        names = [article.name.lower() for article in user.articles if article.name != current_name]
-        if name.lower() in names:
+        names = [article.name.casefold() for article in user.articles if article.name != current_name]
+        if name.casefold() in names:
             raise ValueError(f"Article {name} already exists")
 
         return name

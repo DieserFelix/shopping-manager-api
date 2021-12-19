@@ -32,11 +32,11 @@ def read_stores(
     asc: int = PaginationDefaults.ASC,
     limit: int = PaginationDefaults.LIMIT,
     auth_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
 ):
     try:
         if page < 1 or limit < 1:
             raise ValueError(f"Invalid pagination parameters")
+        page -= 1
 
         stores: List[Store]
         if name:
@@ -45,16 +45,18 @@ def read_stores(
             stores = auth_user.stores
 
         stores = sorted(
-            stores, key=lambda store: store.name if sort_by == StoreColumns.NAME else store.updated_at, reverse=asc != PaginationDefaults.ASC
+            stores, key=lambda store: store.name.lower() if sort_by == StoreColumns.NAME else store.updated_at, reverse=asc != PaginationDefaults.ASC
         )
 
-        if (page - 1) * limit >= len(stores):
-            raise LookupError(f"Requested page does not exist")
-
-        stores = stores[(page - 1) * limit:page * limit + limit]
+        if page * limit >= len(stores):
+            stores = []
+        else:
+            stores = stores[page * limit:page * limit + limit]
+        print([store.name for store in stores])
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        print(str(e))
         raise HTTPException(status_code=500, detail=str(e))
     else:
         return stores

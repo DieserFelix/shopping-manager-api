@@ -32,11 +32,11 @@ def read_categories(
     asc: int = PaginationDefaults.ASC,
     limit: int = PaginationDefaults.LIMIT,
     auth_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
 ):
     try:
         if page < 1 or limit < 1:
             raise ValueError(f"Invalid pagination parameters")
+        page -= 1
 
         categories: List[Category]
         if name:
@@ -46,14 +46,14 @@ def read_categories(
 
         categories = sorted(
             categories,
-            key=lambda category: category.name if sort_by == CategoryColumns.NAME else category.updated_at,
+            key=lambda category: category.name.lower() if sort_by == CategoryColumns.NAME else category.updated_at,
             reverse=asc != PaginationDefaults.ASC
         )
 
-        if (page - 1) * limit >= len(categories):
+        if page * limit >= len(categories):
             raise LookupError(f"Requested page does not exist")
 
-        categories = categories[(page - 1) * limit:page * limit + limit]
+        categories = categories[page * limit:page * limit + limit]
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

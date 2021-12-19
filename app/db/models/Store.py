@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, List
 from app.db import Base
-from sqlalchemy import Column, Integer, ForeignKey, String, Text, DateTime
+from sqlalchemy import Column, Integer, ForeignKey, String, Text, DateTime, func
 from sqlalchemy.orm import Session, relationship
 import bleach
 import app.lib as lib
@@ -50,11 +50,11 @@ class Store(Base):
 
         store_name = bleach.clean(store_name.strip(), tags=[])
 
-        store = db.query(Store).filter(Store.name == store_name).first()
+        store = db.query(Store).filter(func.lower(Store.name) == func.lower(store_name)).first()
         if store is None:
             raise LookupError(f"No such store: {store_name}")
         if user.role != lib.UserRoles.ADMIN:
-            if store not in user.categories:
+            if store not in user.stores:
                 raise LookupError(f"No such store: {store_name}")
 
         return store
@@ -68,7 +68,7 @@ class Store(Base):
 
         stores: List[Store] = []
         for store in user.stores:
-            if name.lower() in store.name.lower():
+            if name.casefold() in store.name.casefold():
                 stores.append(store)
 
         return stores
@@ -80,7 +80,7 @@ class Store(Base):
 
         name: str = bleach.clean(name.strip(), tags=[])
 
-        names = [store.name.lower() for store in user.stores if store.name != current_name]
+        names = [store.name.casefold() for store in user.stores if store.name != current_name]
         if name.lower() in names:
             raise ValueError(f"Store {name} already exists")
 
