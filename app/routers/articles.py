@@ -22,17 +22,19 @@ articles = APIRouter(
     response_model=List[schemas.Article],
     responses={
         200: dict(description="List of articles created by the current user, possibly filtered by name."),
-        404: dict(description="Requested page does not exist", model=schemas.HTTPError)
+        400: dict(description="Invalid pagination parameters.", model=schemas.HTTPError),
+        404: dict(description="Requested page does not exist.", model=schemas.HTTPError)
     }
 )
 def read_articles(
     name: str = None,
+    store: str = None,
+    category: str = None,
     sort_by: ArticleColumns = ArticleColumns.UPDATED_AT,
     page: int = PaginationDefaults.FIRST_PAGE,
     asc: int = PaginationDefaults.ASC,
     limit: int = PaginationDefaults.LIMIT,
     auth_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
 ):
     try:
         if page < 1 or limit < 1:
@@ -43,6 +45,11 @@ def read_articles(
             articles = Article.find(name, auth_user)
         else:
             articles = auth_user.articles
+
+        if store:
+            articles = [article for article in articles if article.store.name == store]
+        if category:
+            articles = [article for article in articles if article.category.name == category]
 
         articles = sorted(
             articles,
@@ -57,6 +64,8 @@ def read_articles(
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     else:
@@ -128,7 +137,8 @@ def read_article_price(article_id: int, at: datetime = None, auth_user: User = D
     response_model=schemas.Article,
     responses={
         201: dict(description="Created article."),
-        400: dict(description="Input validation failed.", model=schemas.HTTPError)
+        400: dict(description="Input validation failed.", model=schemas.HTTPError),
+        404: dict(description="Store or Category does not exist", model=schemas.HTTPError)
     }
 )
 def create_article(article: schemas.ArticleCreate, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -170,7 +180,8 @@ def create_article(article: schemas.ArticleCreate, auth_user: User = Depends(get
     response_model=schemas.Article,
     responses={
         200: dict(description="Updated article."),
-        400: dict(description="Input validation failed.", model=schemas.HTTPError)
+        400: dict(description="Input validation failed.", model=schemas.HTTPError),
+        404: dict(description="Article, Store or Category does not exist.", model=schemas.HTTPError)
     }
 )
 def update_article(article: schemas.ArticleUpdate, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):

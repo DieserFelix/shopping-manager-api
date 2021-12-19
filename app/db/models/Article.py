@@ -96,16 +96,16 @@ class Article(Base):
 
         name: str = bleach.clean(name.strip(), tags=[])
 
-        names = [product.name.lower() for product in user.articles if product.name != current_name]
+        names = [article.name.lower() for article in user.articles if article.name != current_name]
         if name.lower() in names:
-            raise ValueError(f"Product {name} already exists")
+            raise ValueError(f"Article {name} already exists")
 
         return name
 
     @staticmethod
     def process_detail(detail: Any) -> str:
         if not isinstance(detail, str):
-            raise ValueError("Invalid product detail")
+            raise ValueError("Invalid article detail")
 
         detail = bleach.clean(detail, tags=[])
 
