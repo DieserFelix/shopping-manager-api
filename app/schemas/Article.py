@@ -1,6 +1,17 @@
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
 from pydantic.class_validators import validator
+
+
+class Price(BaseModel):
+    price: float
+    currency: str
+    valid_at: datetime
+    article_id: int
+
+    class Config:
+        orm_mode = True
 
 
 class ArticleCreate(BaseModel):
@@ -8,7 +19,7 @@ class ArticleCreate(BaseModel):
     detail: Optional[str]
     category_id: int
     store_id: int
-    price: float
+    price: Price
 
 
 class ArticleUpdate(BaseModel):
@@ -17,15 +28,7 @@ class ArticleUpdate(BaseModel):
     detail: Optional[str]
     store_id: Optional[int]
     category_id: Optional[int]
-    price: Optional[float]
-
-
-class Price(BaseModel):
-    price: float
-    currency: str
-
-    class Config:
-        orm_mode = True
+    price: Optional[Price]
 
 
 class Article(BaseModel):
