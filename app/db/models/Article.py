@@ -38,7 +38,7 @@ class Article(Base):
             for price in prices:
                 if price.valid_at <= at:
                     return price
-        return prices[-1]
+        return prices[0]
 
     @staticmethod
     def get(article_id: Any, user: models.User, db: Session) -> Article:
