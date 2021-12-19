@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from starlette.responses import Response
 from app.db.models import Category, User
 from app.lib import get_current_user, get_db, UserRoles
+from app.lib.pagination import ArticleColumns, CategoryColumns, PaginationDefaults
 import app.schemas as schemas
 from sqlalchemy.orm import Session
 
@@ -24,13 +25,35 @@ categories = APIRouter(
         400: dict(description="Invalid name for filter.", model=schemas.HTTPError)
     }
 )
-def read_categories(name: str = None, limit: int = None, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def read_categories(
+    name: str = None,
+    sort_by: CategoryColumns = CategoryColumns.UPDATED_AT,
+    page: int = PaginationDefaults.FIRST_PAGE,
+    asc: int = PaginationDefaults.ASC,
+    limit: int = PaginationDefaults.LIMIT,
+    auth_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     try:
-        categories: List[Category] = sorted(auth_user.categories, key=lambda category: category.id)
-        categories = [category for category in auth_user.categories]
+        if page < 1 or limit < 1:
+            raise ValueError(f"Invalid pagination parameters")
 
-        if filter:
-            categories = Category.find(filter, auth_user)
+        categories: List[Category]
+        if name:
+            categories = Category.find(name, auth_user)
+        else:
+            categories = auth_user.categories
+
+        categories = sorted(
+            categories,
+            key=lambda category: category.name if sort_by == CategoryColumns.NAME else category.updated_at,
+            reverse=asc != PaginationDefaults.ASC
+        )
+
+        if (page - 1) * limit >= len(categories):
+            raise LookupError(f"Requested page does not exist")
+
+        categories = categories[(page - 1) * limit:page * limit + limit]
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

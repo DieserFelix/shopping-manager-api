@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from starlette.responses import Response
 from app.db.models import Store, User
 from app.lib import get_current_user, get_db, UserRoles
+from app.lib.pagination import PaginationDefaults, StoreColumns
 import app.schemas as schemas
 from sqlalchemy.orm import Session
 
@@ -24,11 +25,33 @@ stores = APIRouter(
         400: dict(description="Invalid name for filter.", model=schemas.HTTPError)
     }
 )
-def read_stores(filter: str = None, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def read_stores(
+    name: str = None,
+    sort_by: StoreColumns = StoreColumns.UPDATED_AT,
+    page: int = PaginationDefaults.FIRST_PAGE,
+    asc: int = PaginationDefaults.ASC,
+    limit: int = PaginationDefaults.LIMIT,
+    auth_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     try:
-        stores = [store for store in auth_user.stores]
-        if filter:
-            stores = Store.find(filter, auth_user)
+        if page < 1 or limit < 1:
+            raise ValueError(f"Invalid pagination parameters")
+
+        stores: List[Store]
+        if name:
+            stores = Store.find(name, auth_user)
+        else:
+            stores = auth_user.stores
+
+        stores = sorted(
+            stores, key=lambda store: store.name if sort_by == StoreColumns.NAME else store.updated_at, reverse=asc != PaginationDefaults.ASC
+        )
+
+        if (page - 1) * limit >= len(stores):
+            raise LookupError(f"Requested page does not exist")
+
+        stores = stores[(page - 1) * limit:page * limit + limit]
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -125,8 +148,8 @@ def update_store(store: schemas.StoreUpdate, auth_user: User = Depends(get_curre
 def delete_store(store_id: int, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         current_store = Store.get(store_id, auth_user, db)
-        for article in current_store.articles:
-            article.store = None
+        for store in current_store.articles:
+            store.store = None
 
         db.delete(current_store)
         db.commit()

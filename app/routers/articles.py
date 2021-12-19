@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from starlette.responses import Response
 from app.db.models import Article, Store, Category, Price, User
 from app.lib import get_current_user, get_db
+from app.lib.pagination import ArticleColumns, PaginationDefaults
 import app.schemas as schemas
 from sqlalchemy.orm import Session
 
@@ -19,14 +20,41 @@ articles = APIRouter(
 @articles.get(
     "/",
     response_model=List[schemas.Article],
-    responses={200: dict(description="List of articles created by the current user, possibly filtered by name.")}
+    responses={
+        200: dict(description="List of articles created by the current user, possibly filtered by name."),
+        404: dict(description="Requested page does not exist", model=schemas.HTTPError)
+    }
 )
-def read_articles(filter: str = None, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def read_articles(
+    name: str = None,
+    sort_by: ArticleColumns = ArticleColumns.UPDATED_AT,
+    page: int = PaginationDefaults.FIRST_PAGE,
+    asc: int = PaginationDefaults.ASC,
+    limit: int = PaginationDefaults.LIMIT,
+    auth_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     try:
-        if filter:
-            articles = Article.find(filter, auth_user)
+        if page < 1 or limit < 1:
+            raise ValueError(f"Invalid pagination parameters")
+
+        articles: List[Article]
+        if name:
+            articles = Article.find(name, auth_user)
         else:
             articles = auth_user.articles
+
+        articles = sorted(
+            articles,
+            key=lambda article: article.name if sort_by == ArticleColumns.NAME else article.updated_at,
+            reverse=asc == PaginationDefaults.ASC
+        )
+
+        if (page - 1) * limit >= len(articles):
+            raise LookupError(f"Requested page does not exist")
+
+        articles = articles[(page - 1) * limit:page * limit + limit]
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
