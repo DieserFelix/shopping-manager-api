@@ -159,7 +159,7 @@ def update_article(article: schemas.ArticleUpdate, auth_user: User = Depends(get
         if article.price is not None:
             if current_article.price().price != article.price:
                 current_price = Price()
-                current_price.price = article.price
+                current_price.price = article.price.price
                 current_price.valid_at = datetime.utcnow()
                 current_price.currency = "EUR"
                 current_price.article = current_article
