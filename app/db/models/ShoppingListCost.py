@@ -13,7 +13,7 @@ class ShoppingListCost(Base):
     cost: float = Column(Float)
     category_id: int = Column(Integer, ForeignKey("Category.id", ondelete="CASCADE"), nullable=True)
     list_id: int = Column(Integer, ForeignKey("ShoppingList.id", ondelete="CASCADE"), nullable=False)
-    valid_at: datetime = Column(DateTime)
+    created_at: datetime = Column(DateTime)
 
     category: models.Category = relationship("Category", back_populates="costs")
     list: models.ShoppingList = relationship("ShoppingList", back_populates="costs")

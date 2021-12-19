@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from starlette.responses import Response
@@ -70,6 +71,9 @@ def create_store(store: schemas.StoreCreate, auth_user: User = Depends(get_curre
         current_store.name = Store.process_name(store.name, auth_user)
         current_store.username = auth_user.username
 
+        current_store.created_at = datetime.utcnow()
+        current_store.updated_at = datetime.utcnow()
+
         db.add(current_store)
         db.commit()
     except ValueError as e:
@@ -95,6 +99,8 @@ def update_store(store: schemas.StoreUpdate, auth_user: User = Depends(get_curre
         current_store = Store.get(store.id, auth_user, db)
         if store.name is not None:
             current_store.name = Store.process_name(store.name, auth_user, current_store.name)
+
+        current_store.updated_at = datetime.utcnow()
 
         db.commit()
     except LookupError as e:

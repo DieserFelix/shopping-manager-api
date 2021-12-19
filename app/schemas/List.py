@@ -18,6 +18,7 @@ class ListUpdate(BaseModel):
 class List(BaseModel):
     id: int
     title: str
+    created_at: datetime
     updated_at: datetime
     finalized: bool
 

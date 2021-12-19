@@ -1,7 +1,8 @@
 from __future__ import annotations
+from datetime import datetime
 from typing import Any, List
 from app.db import Base
-from sqlalchemy import Column, Integer, ForeignKey, String, Text
+from sqlalchemy import Column, Integer, ForeignKey, String, Text, DateTime
 from sqlalchemy.orm import Session, relationship
 import bleach
 import app.lib as lib
@@ -14,6 +15,9 @@ class Store(Base):
     id: int = Column(Integer, primary_key=True, autoincrement=True)
 
     name: str = Column(Text, nullable=False)
+
+    created_at: datetime = Column(DateTime)
+    updated_at: datetime = Column(DateTime)
 
     username: str = Column(String(32), ForeignKey("User.username", ondelete="CASCADE"), nullable=False)
 
@@ -36,6 +40,22 @@ class Store(Base):
         if user.role != lib.UserRoles.ADMIN:
             if store not in user.stores:
                 raise LookupError(f"No such store: {store_id}")
+
+        return store
+
+    @staticmethod
+    def byName(store_name: str, user: models.User, db: Session) -> Store:
+        if not isinstance(store_name, str) or not store_name:
+            raise LookupError(f"No such store: {store_name}")
+
+        store_name = bleach.clean(store_name.strip(), tags=[])
+
+        store = db.query(Store).filter(Store.name == store_name).first()
+        if store is None:
+            raise LookupError(f"No such store: {store_name}")
+        if user.role != lib.UserRoles.ADMIN:
+            if store not in user.categories:
+                raise LookupError(f"No such store: {store_name}")
 
         return store
 

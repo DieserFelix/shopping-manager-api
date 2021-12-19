@@ -20,6 +20,8 @@ class ListItem(BaseModel):
     article_id: int
     amount: float
     price: Any
+    created_at: datetime
+    updated_at: datetime
 
     @validator("price")
     def validate_price(cls, price):

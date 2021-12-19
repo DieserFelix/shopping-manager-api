@@ -80,7 +80,7 @@ def read_list_costs(list_id: int, auth_user: User = Depends(get_current_user), d
                 current_cost = ShoppingListCost()
                 current_cost.cost = cost
                 current_cost.category_id = category_id
-                current_cost.valid_at = list.updated_at
+                current_cost.created_at = list.updated_at
                 current_cost.list_id = list.id
                 db.add(current_cost)
             db.commit()
@@ -113,6 +113,8 @@ def create_list(list: schemas.ListCreate, auth_user: User = Depends(get_current_
             category = Category.get(list.category_id, auth_user, db)
             current_list.category = category
         current_list.finalized = False
+        current_list.created_at = datetime.utcnow()
+        current_list.updated_at = datetime.utcnow()
 
         current_list.username = auth_user.username
 

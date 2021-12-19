@@ -1,7 +1,8 @@
 from __future__ import annotations
+from datetime import datetime
 from typing import Any
 from app.db import Base
-from sqlalchemy import Column, Integer, ForeignKey, String, Float
+from sqlalchemy import Column, Integer, ForeignKey, String, Float, DateTime
 from sqlalchemy.orm import Session, relationship
 from app.lib import UserRoles
 import app.db.models as models
@@ -13,6 +14,9 @@ class ShoppingListItem(Base):
     id: int = Column(Integer, primary_key=True, autoincrement=True)
     article_id: int = Column(Integer, ForeignKey("Article.id", ondelete="CASCADE"), nullable=False)
     amount: float = Column(Float)
+
+    created_at: datetime = Column(DateTime)
+    updated_at: datetime = Column(DateTime)
 
     list_id: int = Column(Integer, ForeignKey("ShoppingList.id", ondelete="CASCADE"), nullable=False)
     username: str = Column(String(32), ForeignKey("User.username", ondelete="CASCADE"), nullable=False)

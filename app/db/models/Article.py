@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, List
 from app.db import Base
-from sqlalchemy import Column, Integer, ForeignKey, String, Text
+from sqlalchemy import Column, Integer, ForeignKey, String, Text, DateTime
 from sqlalchemy.orm import Session, relationship
 import bleach
 import app.lib as lib
@@ -16,6 +16,9 @@ class Article(Base):
 
     name: str = Column(Text, nullable=False)
     detail: str = Column(Text, nullable=True)
+
+    created_at: datetime = Column(DateTime)
+    updated_at: datetime = Column(DateTime)
 
     store_id: int = Column(Integer, ForeignKey("Store.id"), nullable=True)
     category_id: int = Column(Integer, ForeignKey("Category.id"), nullable=True)
@@ -33,10 +36,10 @@ class Article(Base):
         return self.name
 
     def price(self, at: datetime = None) -> models.Price:
-        prices = sorted(self.prices, key=lambda price: price.valid_at, reverse=True)
+        prices = sorted(self.prices, key=lambda price: price.created_at, reverse=True)
         if at:
             for price in prices:
-                if price.valid_at <= at:
+                if price.created_at <= at:
                     return price
         return prices[0]
 
@@ -53,6 +56,22 @@ class Article(Base):
         if user.role != lib.UserRoles.ADMIN:
             if article not in user.articles:
                 raise LookupError(f"No such article: {article_id}")
+
+        return article
+
+    @staticmethod
+    def byName(article_name: str, user: models.User, db: Session) -> Article:
+        if not isinstance(article_name, str) or not article_name:
+            raise LookupError(f"No such article: {article_name}")
+
+        article_name = bleach.clean(article_name.strip(), tags=[])
+
+        article = db.query(Article).filter(Article.name == article_name).first()
+        if article is None:
+            raise LookupError(f"No such article: {article_name}")
+        if user.role != lib.UserRoles.ADMIN:
+            if article not in user.categories:
+                raise LookupError(f"No such article: {article_name}")
 
         return article
 

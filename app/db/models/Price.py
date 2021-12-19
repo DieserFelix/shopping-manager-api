@@ -16,7 +16,7 @@ class Price(Base):
     id: int = Column(Integer, primary_key=True, autoincrement=True)
 
     price: float = Column(Float, nullable=False)
-    valid_at: datetime = Column(DateTime)
+    created_at: datetime = Column(DateTime)
     currency: str = Column(String(32), nullable=False)
 
     article_id: int = Column(Integer, ForeignKey("Article.id", ondelete="CASCADE"), nullable=False)

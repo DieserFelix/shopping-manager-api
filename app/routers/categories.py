@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from starlette.responses import Response
@@ -23,9 +24,11 @@ categories = APIRouter(
         400: dict(description="Invalid name for filter.", model=schemas.HTTPError)
     }
 )
-def read_categories(filter: str = None, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def read_categories(name: str = None, limit: int = None, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
+        categories: List[Category] = sorted(auth_user.categories, key=lambda category: category.id)
         categories = [category for category in auth_user.categories]
+
         if filter:
             categories = Category.find(filter, auth_user)
     except ValueError as e:
@@ -69,6 +72,8 @@ def create_category(category: schemas.CategoryCreate, auth_user: User = Depends(
         current_category = Category()
         current_category.name = Category.process_name(category.name, auth_user)
         current_category.username = auth_user.username
+        current_category.created_at = datetime.utcnow()
+        current_category.updated_at = datetime.utcnow()
 
         db.add(current_category)
         db.commit()
@@ -95,6 +100,8 @@ def update_category(category: schemas.CategoryUpdate, auth_user: User = Depends(
         current_category = Category.get(category.id, auth_user, db)
         if category.name is not None:
             current_category.name = Category.process_name(category.name, auth_user, current_category.name)
+
+        current_category.updated_at = datetime.utcnow()
 
         db.commit()
     except LookupError as e:

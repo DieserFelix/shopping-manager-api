@@ -1,8 +1,9 @@
 from __future__ import annotations
 from typing import Any, List
 from app.db import Base
-from sqlalchemy import Column, Integer, ForeignKey, String, Text
+from sqlalchemy import Column, Integer, ForeignKey, String, Text, DateTime
 from sqlalchemy.orm import Session, relationship
+from datetime import datetime
 import bleach
 import app.lib as lib
 import app.db.models as models
@@ -14,6 +15,8 @@ class Category(Base):
     id: int = Column(Integer, primary_key=True, autoincrement=True)
 
     name: str = Column(Text, nullable=False)
+    created_at: datetime = Column(DateTime)
+    updated_at: datetime = Column(DateTime)
 
     username: str = Column(String(32), ForeignKey("User.username", ondelete="CASCADE"), nullable=False)
 
@@ -38,6 +41,22 @@ class Category(Base):
         if user.role != lib.UserRoles.ADMIN:
             if category not in user.categories:
                 raise LookupError(f"No such category: {category_id}")
+
+        return category
+
+    @staticmethod
+    def byName(category_name: str, user: models.User, db: Session) -> Category:
+        if not isinstance(category_name, str) or not category_name:
+            raise LookupError(f"No such category: {category_name}")
+
+        category_name = bleach.clean(category_name.strip(), tags=[])
+
+        category = db.query(Category).filter(Category.name == category_name).first()
+        if category is None:
+            raise LookupError(f"No such category: {category_name}")
+        if user.role != lib.UserRoles.ADMIN:
+            if category not in user.categories:
+                raise LookupError(f"No such category: {category_name}")
 
         return category
 

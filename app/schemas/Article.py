@@ -7,41 +7,60 @@ from pydantic.class_validators import validator
 class Price(BaseModel):
     price: float
     currency: str
-    valid_at: datetime
+    created_at: datetime
     article_id: int
 
     class Config:
         orm_mode = True
 
 
+class PriceCreate(BaseModel):
+    price: float
+    currency: str
+
+
 class ArticleCreate(BaseModel):
     name: str
     detail: Optional[str]
-    category_id: int
-    store_id: int
-    price: Price
+    category: str
+    store: str
+    price: PriceCreate
 
 
 class ArticleUpdate(BaseModel):
     id: int
     name: Optional[str]
     detail: Optional[str]
-    store_id: Optional[int]
-    category_id: Optional[int]
-    price: Optional[Price]
+    store: Optional[str]
+    category: Optional[str]
+    price: Optional[PriceCreate]
 
 
 class Article(BaseModel):
     id: int
     name: str
     detail: str
-    store_id: int
-    category_id: int
+    store: Any
+    category: Any
     price: Any
+    created_at: datetime
+    updated_at: datetime
 
     @validator("price")
     def validate_price(cls, price):
         return price()
+
+    @validator("store")
+    def validate_store(cls, store):
+        if store:
+            return store.name
+        return ""
+
+    @validator("category")
+    def validate_category(cls, category):
+        if category:
+            return category.name
+        return ""
 
     class Config:
         orm_mode = True
@@ -60,4 +79,12 @@ class Article(BaseModel):
                         "type": "string"
                     }
                 }
+            }
+            schema["properties"]["store"] = {
+                "title": "Store",
+                "type": "string"
+            }
+            schema["properties"]["category"] = {
+                "title": "Category",
+                "type": "string"
             }

@@ -14,6 +14,7 @@ class ShoppingList(Base):
 
     id: int = Column(Integer, primary_key=True, autoincrement=True)
     title: str = Column(Text)
+    created_at: datetime = Column(DateTime)
     updated_at: datetime = Column(DateTime)
     finalized: bool = Column(Boolean)
 
@@ -38,7 +39,7 @@ class ShoppingList(Base):
         if not self.costs:
             return False
         for cost in self.costs:
-            if cost.valid_at != self.updated_at:
+            if cost.created_at != self.updated_at:
                 return False
         return True
 

@@ -109,16 +109,18 @@ def create_article(article: schemas.ArticleCreate, auth_user: User = Depends(get
         current_article.name = Article.process_name(article.name, auth_user)
         if article.detail is not None:
             current_article.detail = Article.process_detail(article.detail)
-        store = Store.get(article.store_id, auth_user, db)
+        store = Store.byName(article.store, auth_user, db)
         current_article.store_id = store.id
-        category = Category.get(article.category_id, auth_user, db)
+        category = Category.byName(article.category, auth_user, db)
         current_article.category_id = category.id
         current_article.username = auth_user.username
+        current_article.created_at = datetime.utcnow()
+        current_article.updated_at = datetime.utcnow()
 
         current_price = Price()
-        current_price.price = article.price
-        current_price.valid_at = datetime.utcnow()
-        current_price.currency = "EUR"
+        current_price.price = article.price.price
+        current_price.created_at = datetime.utcnow()
+        current_price.currency = article.price.currency
         current_price.article = current_article
         current_price.username = auth_user.username
 
@@ -150,22 +152,23 @@ def update_article(article: schemas.ArticleUpdate, auth_user: User = Depends(get
             current_article.name = Article.process_name(article.name, auth_user, current_article.name)
         if article.detail is not None:
             current_article.detail = Article.process_detail(article.detail)
-        if article.store_id is not None:
-            store = Store.get(article.store_id, auth_user, db)
+        if article.store is not None:
+            store = Store.byName(article.store, auth_user, db)
             current_article.store_id = store.id
-        if article.category_id is not None:
-            category = Category.get(article.category_id, auth_user, db)
+        if article.category is not None:
+            category = Category.byName(article.category, auth_user, db)
             current_article.category_id = category.id
         if article.price is not None:
             if current_article.price().price != article.price:
                 current_price = Price()
                 current_price.price = article.price.price
-                current_price.valid_at = datetime.utcnow()
+                current_price.created_at = datetime.utcnow()
                 current_price.currency = "EUR"
                 current_price.article = current_article
                 current_price.username = auth_user.username
                 db.add(current_price)
 
+        current_article.updated_at = datetime.utcnow()
         db.commit()
     except LookupError as e:
         raise HTTPException(status_code=404, detail=str(e))
