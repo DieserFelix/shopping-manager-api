@@ -52,6 +52,14 @@ class ShoppingListItem(Base):
             self.parent.updated_at = self.updated_at
 
     @staticmethod
+    def create(user: models.User) -> ShoppingListItem:
+        item = ShoppingListItem()
+        item.created_at = datetime.utcnow()
+        item.user = user
+
+        return item
+
+    @staticmethod
     def get(item_id: Any, user: models.User, db: Session) -> ShoppingListItem:
         try:
             item_id = int(item_id)

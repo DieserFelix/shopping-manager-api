@@ -66,6 +66,14 @@ class Article(Base):
             self.updated_at = datetime.utcnow()
 
     @staticmethod
+    def create(user: models.User) -> Article:
+        article = Article()
+        article.created_at = datetime.utcnow()
+        article.user = user
+
+        return article
+
+    @staticmethod
     def get(article_id: Any, user: models.User, db: Session) -> Article:
         try:
             article_id = int(article_id)

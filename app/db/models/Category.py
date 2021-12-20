@@ -35,6 +35,14 @@ class Category(Base):
             self.updated_at = datetime.utcnow()
 
     @staticmethod
+    def create(user: models.User) -> Category:
+        category = Category()
+        category.created_at = datetime.utcnow()
+        category.user = user
+
+        return category
+
+    @staticmethod
     def get(category_id: Any, user: models.User, db: Session) -> Category:
         try:
             category_id = int(category_id)

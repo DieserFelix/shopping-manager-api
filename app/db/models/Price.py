@@ -29,6 +29,14 @@ class Price(Base):
         return str(self.price)
 
     @staticmethod
+    def create(user: models.User) -> Price:
+        price = Price()
+        price.created_at = datetime.utcnow()
+        price.user = user
+
+        return price
+
+    @staticmethod
     def get(price_id: Any, user: models.User, db: Session) -> Price:
         try:
             price_id = int(price_id)

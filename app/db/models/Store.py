@@ -34,6 +34,14 @@ class Store(Base):
             self.updated_at = datetime.utcnow()
 
     @staticmethod
+    def create(user: models.User) -> Store:
+        store = Store()
+        store.created_at = datetime.utcnow()
+        store.user = user
+
+        return store
+
+    @staticmethod
     def get(store_id: Any, user: models.User, db: Session) -> Store:
         try:
             store_id = int(store_id)

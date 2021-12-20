@@ -65,6 +65,14 @@ class ShoppingList(Base):
         return cost
 
     @staticmethod
+    def create(user: models.User) -> ShoppingList:
+        shopping_list = ShoppingList()
+        shopping_list.created_at = datetime.utcnow()
+        shopping_list.user = user
+
+        return shopping_list
+
+    @staticmethod
     def get(list_id: Any, user: models.User, db: Session) -> ShoppingList:
         try:
             list_id = int(list_id)
