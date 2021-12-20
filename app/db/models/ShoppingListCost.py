@@ -17,3 +17,11 @@ class ShoppingListCost(Base):
 
     category: models.Category = relationship("Category", back_populates="costs")
     list: models.ShoppingList = relationship("ShoppingList", back_populates="costs")
+
+    @staticmethod
+    def create(list: models.ShoppingList) -> ShoppingListCost:
+        cost = ShoppingListCost()
+        cost.created_at = datetime.utcnow()
+        cost.list = list
+
+        return cost
