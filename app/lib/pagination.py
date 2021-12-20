@@ -9,6 +9,7 @@ class PaginationDefaults(int, Enum):
 
 class ArticleColumns(str, Enum):
     NAME = "name"
+    PRICE = "price"
     UPDATED_AT = "updated_at"
     CATEGORY = "category"
     STORE = "store"
