@@ -80,80 +80,76 @@ def read_store(store_id: int, auth_user: User = Depends(get_current_user), db: S
         return store
 
 
-@stores.post(
-    "/",
-    status_code=201,
-    response_model=schemas.Store,
-    responses={
-        201: dict(description="Created store."),
-        400: dict(description="Input validation failed.", model=schemas.HTTPError)
-    }
-)
-def create_store(store: schemas.StoreCreate, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    try:
-        current_store = Store()
-        current_store.created_at = datetime.utcnow()
-        current_store.user = auth_user
-        current_store.set_name(store.name)
+# @stores.post(
+#     "/",
+#     status_code=201,
+#     response_model=schemas.Store,
+#     responses={
+#         201: dict(description="Created store."),
+#         400: dict(description="Input validation failed.", model=schemas.HTTPError)
+#     }
+# )
+# def create_store(store: schemas.StoreCreate, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+#     try:
+#         current_store = Store.create(auth_user)
+#         current_store.set_name(store.name)
 
-        db.add(current_store)
-        db.commit()
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-    else:
-        return current_store
+#         db.add(current_store)
+#         db.commit()
+#     except ValueError as e:
+#         raise HTTPException(status_code=400, detail=str(e))
+#     except Exception as e:
+#         db.rollback()
+#         raise HTTPException(status_code=500, detail=str(e))
+#     else:
+#         return current_store
 
+# @stores.put(
+#     "/",
+#     response_model=schemas.Store,
+#     responses={
+#         200: dict(description="Updated store."),
+#         400: dict(description="Input validation failed.", model=schemas.HTTPError),
+#         404: dict(description="Store does not exist.", model=schemas.HTTPError)
+#     }
+# )
+# def update_store(store: schemas.StoreUpdate, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+#     try:
+#         current_store = Store.get(store.id, auth_user, db)
+#         if store.name is not None:
+#             current_store.set_name(store.name)
 
-@stores.put(
-    "/",
-    response_model=schemas.Store,
-    responses={
-        200: dict(description="Updated store."),
-        400: dict(description="Input validation failed.", model=schemas.HTTPError),
-        404: dict(description="Store does not exist.", model=schemas.HTTPError)
-    }
-)
-def update_store(store: schemas.StoreUpdate, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    try:
-        current_store = Store.get(store.id, auth_user, db)
-        if store.name is not None:
-            current_store.set_name(store.name)
+#         db.commit()
+#     except LookupError as e:
+#         raise HTTPException(status_code=404, detail=str(e))
+#     except ValueError as e:
+#         raise HTTPException(status_code=400, detail=str(e))
+#     except Exception as e:
+#         db.rollback()
+#         raise HTTPException(status_code=500, detail=str(e))
+#     else:
+#         return current_store
 
-        db.commit()
-    except LookupError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-    else:
-        return current_store
+# @stores.delete(
+#     "/{store_id}",
+#     status_code=204,
+#     responses={
+#         204: dict(description="Deleted store."),
+#         404: dict(description="Store does not exist.", model=schemas.HTTPError)
+#     }
+# )
+# def delete_store(store_id: int, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+#     try:
+#         current_store = Store.get(store_id, auth_user, db)
+#         for store in current_store.articles:
+#             store.store = None
 
-
-@stores.delete(
-    "/{store_id}",
-    status_code=204,
-    responses={
-        204: dict(description="Deleted store."),
-        404: dict(description="Store does not exist.", model=schemas.HTTPError)
-    }
-)
-def delete_store(store_id: int, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    try:
-        current_store = Store.get(store_id, auth_user, db)
-        for store in current_store.articles:
-            store.store = None
-
-        db.delete(current_store)
-        db.commit()
-    except LookupError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-    else:
-        return Response(status_code=204)
+#         db.delete(current_store)
+#         db.commit()
+#     except LookupError as e:
+#         raise HTTPException(status_code=404, detail=str(e))
+#     except Exception as e:
+#         db.rollback()
+#         raise HTTPException(status_code=500, detail=str(e))
+#     else:
+#         return Response(status_code=204)

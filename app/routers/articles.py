@@ -1,11 +1,12 @@
 from datetime import datetime
-from typing import Callable, List
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from starlette.responses import Response
 from app.db.models import Article, Store, Category, Price, User
 from app.lib import get_current_user, get_db
 from app.lib.pagination import ArticleColumns, PaginationDefaults
 import app.schemas as schemas
+import app.routers as routers
 from sqlalchemy.orm import Session
 
 articles = APIRouter(
@@ -55,8 +56,9 @@ def read_articles(
         articles = sorted(
             articles,
             key=lambda article: article.name.lower() if sort_by == ArticleColumns.NAME    #yapf:disable
-            else article.store.name if sort_by == ArticleColumns.STORE    #yapf:disable
-            else article.category.name if sort_by == ArticleColumns.CATEGORY    #yapf:disable
+            else article.price().price if sort_by == ArticleColumns.PRICE    #yapf:disable
+            else (article.store.name if article.store else "") if sort_by == ArticleColumns.STORE    #yapf:disable
+            else (article.category.name if article.category else "") if sort_by == ArticleColumns.CATEGORY    #yapf:disable
             else article.updated_at,    #yapf:disable  
             reverse=asc != PaginationDefaults.ASC
         )
@@ -145,26 +147,20 @@ def read_article_price(article_id: int, at: datetime = None, auth_user: User = D
     }
 )
 def create_article(article: schemas.ArticleCreate, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    print(article)
     try:
-        current_article = Article()
-        current_article.created_at = datetime.utcnow()
-        current_article.user = auth_user
-        if article.store:
-            store = Store.byName(article.store, auth_user, db)
-            current_article.set_store(store)
+        current_article = Article.create(auth_user)
+        if article.store is not None:
+            set_store(current_article, article.store, auth_user, db)
+        if article.category is not None:
+            set_category(current_article, article.category, auth_user, db)
         current_article.set_name(article.name, current_article.store)
         if article.detail is not None:
             current_article.set_detail(article.detail)
-        category = Category.byName(article.category, auth_user, db)
-        current_article.set_category(category)
 
-        current_price = Price()
-        current_price.created_at = datetime.utcnow()
+        current_price = Price.create(auth_user)
         current_price.price = Price.process_price(article.price.price)
         current_price.currency = Price.process_currency(article.price.currency)
         current_price.article = current_article
-        current_price.username = auth_user.username
 
         db.add(current_article)
         db.add(current_price)
@@ -189,35 +185,23 @@ def create_article(article: schemas.ArticleCreate, auth_user: User = Depends(get
     }
 )
 def update_article(article: schemas.ArticleUpdate, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    print(article)
     try:
         current_article = Article.get(article.id, auth_user, db)
+        if article.store is not None:
+            set_store(current_article, article.store, auth_user, db)
+        if article.category is not None:
+            set_category(current_article, article.category, auth_user, db)
         if article.name is not None:
             current_article.set_name(article.name)
         if article.detail is not None:
             current_article.set_detail(article.detail)
-        if article.store:
-            try:
-                store = Store.byName(article.store, auth_user, db)
-            except:
-                store = None
-                # TODO: think if it's prudent to create a non-existent store automatically
-            current_article.set_store(store)
-        if article.category:
-            try:
-                category = Category.byName(article.category, auth_user, db)
-            except:
-                category = None
-                # TODO: think if it's prudent to create a non-existent category automatically
-            current_article.set_category(category)
         if article.price is not None:
             if current_article.price().price != article.price.price:
-                current_price = Price()
-                current_price.created_at = datetime.utcnow()
+                current_price = Price.create(auth_user)
                 current_price.price = Price.process_price(article.price.price)
                 current_price.currency = Price.process_currency(article.price.currency)
                 current_price.article = current_article
-                current_price.username = auth_user.username
+
                 db.add(current_price)
                 current_article.updated_at = datetime.utcnow()
 
@@ -246,6 +230,8 @@ def delete_article(article_id: int, auth_user: User = Depends(get_current_user),
         current_article = Article.get(article_id, auth_user, db)
         if len(current_article.instances) > 0:
             raise ValueError("There are shopping lists containing this article")
+        set_store(current_article, "", auth_user, db)
+        set_category(current_article, "", auth_user, db)
 
         db.delete(current_article)
         db.commit()
@@ -258,3 +244,37 @@ def delete_article(article_id: int, auth_user: User = Depends(get_current_user),
         raise HTTPException(status_code=500, detail=str(e))
     else:
         return Response(status_code=204)
+
+
+def set_store(article: Article, store: str, user: User, db: Session) -> None:
+    if store:
+        try:
+            store = Store.byName(store, user, db)
+        except:
+            store = Store.create(user)
+            store.set_name(store)
+    else:
+        store = None
+
+    previous_store = article.store
+    article.set_store(store)
+    if article.store != previous_store and previous_store is not None:
+        if len(previous_store.articles) == 0:
+            db.delete(previous_store)
+
+
+def set_category(article: Article, category: str, user: User, db: Session) -> None:
+    if category:
+        try:
+            category = Category.byName(category, user, db)
+        except:
+            category = Category.create(user)
+            category.set_name(category)
+    else:
+        category = None
+
+    previous_category = article.category
+    article.set_category(category)
+    if article.category != previous_category and previous_category is not None:
+        if len(previous_category.articles) == 0:
+            db.delete(previous_category)
