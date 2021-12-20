@@ -153,7 +153,7 @@ def create_article(article: schemas.ArticleCreate, auth_user: User = Depends(get
             set_store(current_article, article.store, auth_user, db)
         if article.category is not None:
             set_category(current_article, article.category, auth_user, db)
-        current_article.set_name(article.name, current_article.store)
+        current_article.set_name(article.name)
         if article.detail is not None:
             current_article.set_detail(article.detail)
 
