@@ -1,8 +1,9 @@
 from __future__ import annotations
 from typing import Any, List
 from app.db import Base
-from sqlalchemy import Column, Integer, ForeignKey, String, Text
+from sqlalchemy import Column, Integer, ForeignKey, String, Text, DateTime, func
 from sqlalchemy.orm import Session, relationship
+from datetime import datetime
 import bleach
 import app.lib as lib
 import app.db.models as models
@@ -14,6 +15,8 @@ class Category(Base):
     id: int = Column(Integer, primary_key=True, autoincrement=True)
 
     name: str = Column(Text, nullable=False)
+    created_at: datetime = Column(DateTime)
+    updated_at: datetime = Column(DateTime)
 
     username: str = Column(String(32), ForeignKey("User.username", ondelete="CASCADE"), nullable=False)
 
@@ -24,6 +27,20 @@ class Category(Base):
 
     def __str__(self) -> str:
         return self.name
+
+    def set_name(self, name: Any) -> None:
+        name = Category.process_name(name, self.user, self)
+        if name != self.name:
+            self.name = name
+            self.updated_at = datetime.utcnow()
+
+    @staticmethod
+    def create(user: models.User) -> Category:
+        category = Category()
+        category.created_at = datetime.utcnow()
+        category.user = user
+
+        return category
 
     @staticmethod
     def get(category_id: Any, user: models.User, db: Session) -> Category:
@@ -42,6 +59,22 @@ class Category(Base):
         return category
 
     @staticmethod
+    def byName(category_name: str, user: models.User, db: Session) -> Category:
+        if not isinstance(category_name, str) or not category_name:
+            raise LookupError(f"No such category: {category_name}")
+
+        category_name = bleach.clean(category_name.strip(), tags=[])
+
+        category = db.query(Category).filter(func.lower(Category.name) == func.lower(category_name)).first()
+        if category is None:
+            raise LookupError(f"No such category: {category_name}")
+        if user.role != lib.UserRoles.ADMIN:
+            if category not in user.categories:
+                raise LookupError(f"No such category: {category_name}")
+
+        return category
+
+    @staticmethod
     def find(name: Any, user: models.User) -> List[Category]:
         if not isinstance(name, str) or not name:
             raise ValueError("Invalid name")
@@ -50,20 +83,21 @@ class Category(Base):
 
         categories: List[Category] = []
         for category in user.categories:
-            if name.lower() in category.name.lower():
+            if name.casefold() in category.name.casefold():
                 categories.append(category)
 
         return categories
 
     @staticmethod
-    def process_name(name: Any, user: models.User, current_name: str = None) -> str:
+    def process_name(name: Any, user: models.User, reference: Category) -> str:
+        print(name)
         if not isinstance(name, str) or not name:
             raise LookupError("Invalid name")
 
         name: str = bleach.clean(name.strip(), tags=[])
 
-        names = [category.name.lower() for category in user.categories if category.name != current_name]
-        if name.lower() in names:
+        names = [category.name.casefold() for category in user.categories if reference != category]
+        if name.casefold() in names:
             raise LookupError(f"Category {name} already exists")
 
         return name

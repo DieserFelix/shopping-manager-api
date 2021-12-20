@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, List
 from app.db import Base
-from sqlalchemy import Column, Integer, ForeignKey, String, Text
+from sqlalchemy import Column, Integer, ForeignKey, String, Text, DateTime, func
 from sqlalchemy.orm import Session, relationship
 import bleach
 import app.lib as lib
@@ -17,13 +17,18 @@ class Article(Base):
     name: str = Column(Text, nullable=False)
     detail: str = Column(Text, nullable=True)
 
+    created_at: datetime = Column(DateTime)
+    updated_at: datetime = Column(DateTime)
+
     store_id: int = Column(Integer, ForeignKey("Store.id"), nullable=True)
     category_id: int = Column(Integer, ForeignKey("Category.id"), nullable=True)
+    brand_id: int = Column(Integer, ForeignKey("Brand.id"), nullable=True)
 
     username: str = Column(String(32), ForeignKey("User.username", ondelete="CASCADE"), nullable=False)
 
-    category: models.Category = relationship("Category", back_populates="articles", uselist=False)
     store: models.Store = relationship("Store", back_populates="articles", uselist=False)
+    category: models.Category = relationship("Category", back_populates="articles", uselist=False)
+    brand: models.Brand = relationship("Brand", back_populates="articles", uselist=False)
     prices: List[models.Price] = relationship("Price", back_populates="article", cascade="all, delete")
     user: models.User = relationship("User", back_populates="articles")
 
@@ -33,13 +38,47 @@ class Article(Base):
         return self.name
 
     def price(self, at: datetime = None) -> models.Price:
-        prices = sorted(self.prices, key=lambda price: price.valid_at, reverse=True)
+        prices = sorted(self.prices, key=lambda price: price.created_at, reverse=True)
         if at:
             for price in prices:
-                if price.valid_at <= at:
+                if price.created_at <= at:
                     return price
-                return prices[-1]
         return prices[0]
+
+    def set_name(self, name: Any) -> None:
+        name = Article.process_name(name, self.user, self)
+        if name != self.name:
+            self.name = name
+            self.updated_at = datetime.utcnow()
+
+    def set_detail(self, detail: Any) -> None:
+        detail = Article.process_detail(detail)
+        if detail != self.detail:
+            self.detail = detail
+            self.updated_at = datetime.utcnow()
+
+    def set_store(self, store: models.Store) -> None:
+        if store != self.store:
+            self.store = store
+            self.updated_at = datetime.utcnow()
+
+    def set_category(self, category: models.Category) -> None:
+        if category != self.category:
+            self.category = category
+            self.updated_at = datetime.utcnow()
+
+    def set_brand(self, brand: models.Brand) -> None:
+        if brand != self.brand:
+            self.brand = brand
+            self.updated_at = datetime.utcnow()
+
+    @staticmethod
+    def create(user: models.User) -> Article:
+        article = Article()
+        article.created_at = datetime.utcnow()
+        article.user = user
+
+        return article
 
     @staticmethod
     def get(article_id: Any, user: models.User, db: Session) -> Article:
@@ -58,6 +97,22 @@ class Article(Base):
         return article
 
     @staticmethod
+    def byName(article_name: str, user: models.User, db: Session) -> Article:
+        if not isinstance(article_name, str) or not article_name:
+            raise LookupError(f"No such article: {article_name}")
+
+        article_name = bleach.clean(article_name.strip(), tags=[])
+
+        article = db.query(Article).filter(func.lower(Article.name) == func.lower(article_name)).first()
+        if article is None:
+            raise LookupError(f"No such article: {article_name}")
+        if user.role != lib.UserRoles.ADMIN:
+            if article not in user.categories:
+                raise LookupError(f"No such article: {article_name}")
+
+        return article
+
+    @staticmethod
     def find(name: Any, user: models.User) -> List[Article]:
         if not isinstance(name, str) or not name:
             raise ValueError("Invalid name")
@@ -66,28 +121,32 @@ class Article(Base):
 
         products: List[Article] = []
         for product in user.articles:
-            if name.lower() in product.name.lower():
+            if name.casefold() in product.name.casefold():
                 products.append(product)
 
         return products
 
     @staticmethod
-    def process_name(name: Any, user: models.User, current_name: str = None) -> str:
+    def process_name(name: Any, user: models.User, reference: Article) -> str:
         if not isinstance(name, str) or not name:
             raise ValueError("Invalid name")
 
         name: str = bleach.clean(name.strip(), tags=[])
 
-        names = [product.name.lower() for product in user.articles if product.name != current_name]
-        if name.lower() in names:
-            raise ValueError(f"Product {name} already exists")
+        names = [
+            article.name.casefold()
+            for article in user.articles if article != reference and reference.store == article.store and reference.category == article.category
+        ]
+
+        if name.casefold() in names:
+            raise ValueError(f"Article {name} already exists")
 
         return name
 
     @staticmethod
     def process_detail(detail: Any) -> str:
         if not isinstance(detail, str):
-            raise ValueError("Invalid product detail")
+            raise ValueError("Invalid article detail")
 
         detail = bleach.clean(detail, tags=[])
 

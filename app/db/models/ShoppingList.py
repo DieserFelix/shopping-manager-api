@@ -14,6 +14,7 @@ class ShoppingList(Base):
 
     id: int = Column(Integer, primary_key=True, autoincrement=True)
     title: str = Column(Text)
+    created_at: datetime = Column(DateTime)
     updated_at: datetime = Column(DateTime)
     finalized: bool = Column(Boolean)
 
@@ -28,6 +29,17 @@ class ShoppingList(Base):
     def __str__(self) -> str:
         return self.title
 
+    def set_title(self, title: Any) -> None:
+        title = ShoppingList.process_title(title)
+        if title != self.title:
+            self.title = title
+            self.updated_at = datetime.utcnow()
+
+    def set_category(self, category: models.Category) -> None:
+        if category != self.category:
+            self.category = category
+            self.updated_at = datetime.utcnow()
+
     def hasArticle(self, article: models.Article) -> bool:
         for item in self.items:
             if item.article.id == article.id:
@@ -38,7 +50,7 @@ class ShoppingList(Base):
         if not self.costs:
             return False
         for cost in self.costs:
-            if cost.valid_at != self.updated_at:
+            if cost.created_at != self.updated_at:
                 return False
         return True
 
@@ -51,6 +63,14 @@ class ShoppingList(Base):
 
         cost["total"] = sum([cost[category] for category in cost.keys()])
         return cost
+
+    @staticmethod
+    def create(user: models.User) -> ShoppingList:
+        shopping_list = ShoppingList()
+        shopping_list.created_at = datetime.utcnow()
+        shopping_list.user = user
+
+        return shopping_list
 
     @staticmethod
     def get(list_id: Any, user: models.User, db: Session) -> ShoppingList:

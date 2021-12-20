@@ -4,16 +4,16 @@ from pydantic import BaseModel
 from pydantic.class_validators import validator
 
 
-class CategoryCreate(BaseModel):
+class BrandCreate(BaseModel):
     name: str
 
 
-class CategoryUpdate(BaseModel):
+class BrandUpdate(BaseModel):
     id: int
     name: Optional[str]
 
 
-class Category(BaseModel):
+class Brand(BaseModel):
     id: int
     name: str
     created_at: datetime
