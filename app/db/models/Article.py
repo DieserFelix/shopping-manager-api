@@ -43,8 +43,8 @@ class Article(Base):
                     return price
         return prices[0]
 
-    def set_name(self, name: Any) -> None:
-        name = Article.process_name(name, self.user, self.name)
+    def set_name(self, name: Any, store: models.Store = None) -> None:
+        name = Article.process_name(name, self.user, self.name, store)
         if name != self.name:
             self.name = name
             self.updated_at = datetime.utcnow()
@@ -112,13 +112,14 @@ class Article(Base):
         return products
 
     @staticmethod
-    def process_name(name: Any, user: models.User, current_name: str = None) -> str:
+    def process_name(name: Any, user: models.User, current_name: str = None, store: models.Store = None) -> str:
         if not isinstance(name, str) or not name:
             raise ValueError("Invalid name")
 
         name: str = bleach.clean(name.strip(), tags=[])
 
-        names = [article.name.casefold() for article in user.articles if article.name != current_name]
+        names = [article.name.casefold() for article in user.articles if article.name != current_name and article.store == store]
+
         if name.casefold() in names:
             raise ValueError(f"Article {name} already exists")
 

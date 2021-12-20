@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import Callable, List
 from fastapi import APIRouter, Depends, HTTPException
 from starlette.responses import Response
 from app.db.models import Article, Store, Category, Price, User
@@ -54,7 +54,10 @@ def read_articles(
 
         articles = sorted(
             articles,
-            key=lambda article: article.name.lower() if sort_by == ArticleColumns.NAME else article.updated_at,
+            key=lambda article: article.name.lower() if sort_by == ArticleColumns.NAME    #yapf:disable
+            else article.store.name if sort_by == ArticleColumns.STORE    #yapf:disable
+            else article.category.name if sort_by == ArticleColumns.CATEGORY    #yapf:disable
+            else article.updated_at,    #yapf:disable  
             reverse=asc != PaginationDefaults.ASC
         )
 
@@ -147,18 +150,19 @@ def create_article(article: schemas.ArticleCreate, auth_user: User = Depends(get
         current_article = Article()
         current_article.created_at = datetime.utcnow()
         current_article.user = auth_user
-        current_article.set_name(article.name)
+        if article.store:
+            store = Store.byName(article.store, auth_user, db)
+            current_article.set_store(store)
+        current_article.set_name(article.name, current_article.store)
         if article.detail is not None:
             current_article.set_detail(article.detail)
-        store = Store.byName(article.store, auth_user, db)
-        current_article.set_store(store)
         category = Category.byName(article.category, auth_user, db)
         current_article.set_category(category)
 
         current_price = Price()
-        current_price.price = article.price.price
         current_price.created_at = datetime.utcnow()
-        current_price.currency = article.price.currency
+        current_price.price = Price.process_price(article.price.price)
+        current_price.currency = Price.process_currency(article.price.currency)
         current_price.article = current_article
         current_price.username = auth_user.username
 
@@ -192,18 +196,26 @@ def update_article(article: schemas.ArticleUpdate, auth_user: User = Depends(get
             current_article.set_name(article.name)
         if article.detail is not None:
             current_article.set_detail(article.detail)
-        if article.store is not None:
-            store = Store.byName(article.store, auth_user, db)
+        if article.store:
+            try:
+                store = Store.byName(article.store, auth_user, db)
+            except:
+                store = None
+                # TODO: think if it's prudent to create a non-existent store automatically
             current_article.set_store(store)
-        if article.category is not None:
-            category = Category.byName(article.category, auth_user, db)
+        if article.category:
+            try:
+                category = Category.byName(article.category, auth_user, db)
+            except:
+                category = None
+                # TODO: think if it's prudent to create a non-existent category automatically
             current_article.set_category(category)
         if article.price is not None:
             if current_article.price().price != article.price.price:
                 current_price = Price()
-                current_price.price = article.price.price
                 current_price.created_at = datetime.utcnow()
-                current_price.currency = "EUR"
+                current_price.price = Price.process_price(article.price.price)
+                current_price.currency = Price.process_currency(article.price.currency)
                 current_price.article = current_article
                 current_price.username = auth_user.username
                 db.add(current_price)
