@@ -44,7 +44,7 @@ class Article(Base):
         return prices[0]
 
     def set_name(self, name: Any) -> None:
-        name = Article.process_name(name, self.user, self.name, self.store, self.category)
+        name = Article.process_name(name, self.user, self)
         if name != self.name:
             self.name = name
             self.updated_at = datetime.utcnow()
@@ -120,7 +120,7 @@ class Article(Base):
         return products
 
     @staticmethod
-    def process_name(name: Any, user: models.User, current_name: str = None, store: models.Store = None, category: models.Category = None) -> str:
+    def process_name(name: Any, user: models.User, reference: Article) -> str:
         if not isinstance(name, str) or not name:
             raise ValueError("Invalid name")
 
@@ -128,7 +128,7 @@ class Article(Base):
 
         names = [
             article.name.casefold()
-            for article in user.articles if article.name != current_name and article.store == store and article.category == category
+            for article in user.articles if article != reference and reference.store == article.store and reference.category == article.category
         ]
 
         if name.casefold() in names:

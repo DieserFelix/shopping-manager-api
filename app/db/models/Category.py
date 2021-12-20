@@ -29,7 +29,7 @@ class Category(Base):
         return self.name
 
     def set_name(self, name: Any) -> None:
-        name = Category.process_name(name, self.user, self.name)
+        name = Category.process_name(name, self.user, self)
         if name != self.name:
             self.name = name
             self.updated_at = datetime.utcnow()
@@ -89,13 +89,14 @@ class Category(Base):
         return categories
 
     @staticmethod
-    def process_name(name: Any, user: models.User, current_name: str = None) -> str:
+    def process_name(name: Any, user: models.User, reference: Category) -> str:
+        print(name)
         if not isinstance(name, str) or not name:
             raise LookupError("Invalid name")
 
         name: str = bleach.clean(name.strip(), tags=[])
 
-        names = [category.name.casefold() for category in user.categories if category.name != current_name]
+        names = [category.name.casefold() for category in user.categories if reference != category]
         if name.casefold() in names:
             raise LookupError(f"Category {name} already exists")
 

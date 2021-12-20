@@ -51,7 +51,7 @@ def read_categories(
         )
 
         if page * limit >= len(categories):
-            raise LookupError(f"Requested page does not exist")
+            []
 
         categories = categories[page * limit:page * limit + limit]
     except ValueError as e:

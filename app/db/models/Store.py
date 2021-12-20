@@ -28,7 +28,7 @@ class Store(Base):
         return self.name
 
     def set_name(self, name: Any) -> None:
-        name = Store.process_name(name, self.user, self.name)
+        name = Store.process_name(name, self.user, self)
         if name != self.name:
             self.name = name
             self.updated_at = datetime.utcnow()
@@ -88,13 +88,13 @@ class Store(Base):
         return stores
 
     @staticmethod
-    def process_name(name: Any, user: models.User, current_name: str = None) -> str:
+    def process_name(name: Any, user: models.User, reference: Store) -> str:
         if not isinstance(name, str) or not name:
             raise ValueError("Invalid name")
 
         name: str = bleach.clean(name.strip(), tags=[])
 
-        names = [store.name.casefold() for store in user.stores if store.name != current_name]
+        names = [store.name.casefold() for store in user.stores if reference != store]
         if name.lower() in names:
             raise ValueError(f"Store {name} already exists")
 

@@ -136,6 +136,9 @@ def read_article_price(article_id: int, at: datetime = None, auth_user: User = D
         return price
 
 
+import traceback
+
+
 @articles.post(
     "/",
     status_code=201,
@@ -147,6 +150,7 @@ def read_article_price(article_id: int, at: datetime = None, auth_user: User = D
     }
 )
 def create_article(article: schemas.ArticleCreate, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    print(article)
     try:
         current_article = Article.create(auth_user)
         if article.store is not None:
@@ -170,6 +174,7 @@ def create_article(article: schemas.ArticleCreate, auth_user: User = Depends(get
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        traceback.print_exc(e)
         raise HTTPException(status_code=500, detail=str(e))
     else:
         return current_article
@@ -189,8 +194,10 @@ def update_article(article: schemas.ArticleUpdate, auth_user: User = Depends(get
         current_article = Article.get(article.id, auth_user, db)
         if article.store is not None:
             set_store(current_article, article.store, auth_user, db)
+            current_article.set_name(current_article.name)
         if article.category is not None:
             set_category(current_article, article.category, auth_user, db)
+            current_article.set_name(current_article.name)
         if article.name is not None:
             current_article.set_name(article.name)
         if article.detail is not None:
@@ -246,13 +253,13 @@ def delete_article(article_id: int, auth_user: User = Depends(get_current_user),
         return Response(status_code=204)
 
 
-def set_store(article: Article, store: str, user: User, db: Session) -> None:
-    if store:
+def set_store(article: Article, store_name: str, user: User, db: Session) -> None:
+    if store_name:
         try:
-            store = Store.byName(store, user, db)
+            store = Store.byName(store_name, user, db)
         except:
             store = Store.create(user)
-            store.set_name(store)
+            store.set_name(store_name)
     else:
         store = None
 
@@ -263,13 +270,13 @@ def set_store(article: Article, store: str, user: User, db: Session) -> None:
             db.delete(previous_store)
 
 
-def set_category(article: Article, category: str, user: User, db: Session) -> None:
-    if category:
+def set_category(article: Article, category_name: str, user: User, db: Session) -> None:
+    if category_name:
         try:
-            category = Category.byName(category, user, db)
+            category = Category.byName(category_name, user, db)
         except:
             category = Category.create(user)
-            category.set_name(category)
+            category.set_name(category_name)
     else:
         category = None
 
