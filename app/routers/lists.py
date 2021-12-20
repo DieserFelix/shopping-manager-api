@@ -106,17 +106,13 @@ def read_list_costs(list_id: int, auth_user: User = Depends(get_current_user), d
 def create_list(list: schemas.ListCreate, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         current_list = ShoppingList()
-        current_list.title = ShoppingList.process_title(list.title)
-        current_list.updated_at = datetime.utcnow()
-
+        current_list.created_at = datetime.utcnow()
+        current_list.user = auth_user
+        current_list.set_title(list.title)
         if list.category_id is not None:
             category = Category.get(list.category_id, auth_user, db)
-            current_list.category = category
+            current_list.set_category(category)
         current_list.finalized = False
-        current_list.created_at = datetime.utcnow()
-        current_list.updated_at = datetime.utcnow()
-
-        current_list.username = auth_user.username
 
         db.add(current_list)
         db.commit()
@@ -144,10 +140,10 @@ def update_list(list: schemas.ListUpdate, auth_user: User = Depends(get_current_
     try:
         current_list = ShoppingList.get(list.id, auth_user, db)
         if list.title is not None:
-            current_list.title = ShoppingList.process_title(list.title)
+            current_list.set_title(list.title)
         if list.category_id is not None:
             category = Category.get(list.category_id, auth_user, db)
-            current_list.category = category
+            current_list.set_category(category)
         if list.finalized is not None:
             current_list.finalized = list.finalized
             current_list.updated_at = datetime.utcnow()

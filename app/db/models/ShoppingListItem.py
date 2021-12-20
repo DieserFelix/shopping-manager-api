@@ -32,6 +32,25 @@ class ShoppingListItem(Base):
     def price(self) -> models.Price:
         return self.article.price(self.parent.updated_at)
 
+    def set_article(self, article: models.Article) -> None:
+        if article == self.article:
+            self.article = article
+            self.updated_at = datetime.utcnow()
+            self.parent.updated_at = self.updated_at
+
+    def set_amount(self, amount: Any) -> None:
+        amount = ShoppingListItem.process_amount(amount)
+        if amount != self.amount:
+            self.amount = amount
+            self.updated_at = datetime.utcnow()
+            self.parent.updated_at = self.updated_at
+
+    def set_list(self, list: models.ShoppingList):
+        if list != self.parent:
+            self.parent = list
+            self.updated_at = datetime.utcnow()
+            self.parent.updated_at = self.updated_at
+
     @staticmethod
     def get(item_id: Any, user: models.User, db: Session) -> ShoppingListItem:
         try:

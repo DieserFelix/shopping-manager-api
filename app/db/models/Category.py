@@ -28,6 +28,12 @@ class Category(Base):
     def __str__(self) -> str:
         return self.name
 
+    def set_name(self, name: Any) -> None:
+        name = Category.process_name(name, self.user, self.name)
+        if name != self.name:
+            self.name = name
+            self.updated_at = datetime.utcnow()
+
     @staticmethod
     def get(category_id: Any, user: models.User, db: Session) -> Category:
         try:

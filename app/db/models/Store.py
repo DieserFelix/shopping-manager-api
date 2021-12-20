@@ -27,6 +27,12 @@ class Store(Base):
     def __str__(self) -> str:
         return self.name
 
+    def set_name(self, name: Any) -> None:
+        name = Store.process_name(name, self.user, self.name)
+        if name != self.name:
+            self.name = name
+            self.updated_at = datetime.utcnow()
+
     @staticmethod
     def get(store_id: Any, user: models.User, db: Session) -> Store:
         try:

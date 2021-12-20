@@ -43,6 +43,28 @@ class Article(Base):
                     return price
         return prices[0]
 
+    def set_name(self, name: Any) -> None:
+        name = Article.process_name(name, self.user, self.name)
+        if name != self.name:
+            self.name = name
+            self.updated_at = datetime.utcnow()
+
+    def set_detail(self, detail: Any) -> None:
+        detail = Article.process_detail(detail)
+        if detail != self.detail:
+            self.detail = detail
+            self.updated_at = datetime.utcnow()
+
+    def set_store(self, store: models.Store) -> None:
+        if store != self.store:
+            self.store = store
+            self.updated_at = datetime.utcnow()
+
+    def set_category(self, category: models.Category) -> None:
+        if category != self.category:
+            self.category = category
+            self.updated_at = datetime.utcnow()
+
     @staticmethod
     def get(article_id: Any, user: models.User, db: Session) -> Article:
         try:

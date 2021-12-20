@@ -29,6 +29,17 @@ class ShoppingList(Base):
     def __str__(self) -> str:
         return self.title
 
+    def set_title(self, title: Any) -> None:
+        title = ShoppingList.process_title(title)
+        if title != self.title:
+            self.title = title
+            self.updated_at = datetime.utcnow()
+
+    def set_category(self, category: models.Category) -> None:
+        if category != self.category:
+            self.category = category
+            self.updated_at = datetime.utcnow()
+
     def hasArticle(self, article: models.Article) -> bool:
         for item in self.items:
             if item.article.id == article.id:

@@ -62,7 +62,6 @@ def read_articles(
             articles = []
         else:
             articles = articles[page * limit:page * limit + limit]
-        print([a.name for a in articles])
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except LookupError as e:
@@ -146,16 +145,15 @@ def create_article(article: schemas.ArticleCreate, auth_user: User = Depends(get
     print(article)
     try:
         current_article = Article()
-        current_article.name = Article.process_name(article.name, auth_user)
-        if article.detail is not None:
-            current_article.detail = Article.process_detail(article.detail)
-        store = Store.byName(article.store, auth_user, db)
-        current_article.store_id = store.id
-        category = Category.byName(article.category, auth_user, db)
-        current_article.category_id = category.id
-        current_article.username = auth_user.username
         current_article.created_at = datetime.utcnow()
-        current_article.updated_at = datetime.utcnow()
+        current_article.user = auth_user
+        current_article.set_name(article.name)
+        if article.detail is not None:
+            current_article.set_detail(article.detail)
+        store = Store.byName(article.store, auth_user, db)
+        current_article.set_store(store)
+        category = Category.byName(article.category, auth_user, db)
+        current_article.set_category(category)
 
         current_price = Price()
         current_price.price = article.price.price
@@ -191,15 +189,15 @@ def update_article(article: schemas.ArticleUpdate, auth_user: User = Depends(get
     try:
         current_article = Article.get(article.id, auth_user, db)
         if article.name is not None:
-            current_article.name = Article.process_name(article.name, auth_user, current_article.name)
+            current_article.set_name(article.name)
         if article.detail is not None:
-            current_article.detail = Article.process_detail(article.detail)
+            current_article.set_detail(article.detail)
         if article.store is not None:
             store = Store.byName(article.store, auth_user, db)
-            current_article.store_id = store.id
+            current_article.set_store(store)
         if article.category is not None:
             category = Category.byName(article.category, auth_user, db)
-            current_article.category_id = category.id
+            current_article.set_category(category)
         if article.price is not None:
             if current_article.price().price != article.price.price:
                 current_price = Price()
@@ -209,14 +207,15 @@ def update_article(article: schemas.ArticleUpdate, auth_user: User = Depends(get
                 current_price.article = current_article
                 current_price.username = auth_user.username
                 db.add(current_price)
+                current_article.updated_at = datetime.utcnow()
 
-        current_article.updated_at = datetime.utcnow()
         db.commit()
     except LookupError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     else:
         return current_article

@@ -93,10 +93,9 @@ def read_category(category_id: int, auth_user: User = Depends(get_current_user),
 def create_category(category: schemas.CategoryCreate, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         current_category = Category()
-        current_category.name = Category.process_name(category.name, auth_user)
-        current_category.username = auth_user.username
         current_category.created_at = datetime.utcnow()
-        current_category.updated_at = datetime.utcnow()
+        current_category.user = auth_user
+        current_category.set_name(category.name)
 
         db.add(current_category)
         db.commit()
@@ -122,9 +121,7 @@ def update_category(category: schemas.CategoryUpdate, auth_user: User = Depends(
     try:
         current_category = Category.get(category.id, auth_user, db)
         if category.name is not None:
-            current_category.name = Category.process_name(category.name, auth_user, current_category.name)
-
-        current_category.updated_at = datetime.utcnow()
+            current_category.set_name(category.name)
 
         db.commit()
     except LookupError as e:

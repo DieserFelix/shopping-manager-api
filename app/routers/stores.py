@@ -52,7 +52,6 @@ def read_stores(
             stores = []
         else:
             stores = stores[page * limit:page * limit + limit]
-        print([store.name for store in stores])
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -93,11 +92,9 @@ def read_store(store_id: int, auth_user: User = Depends(get_current_user), db: S
 def create_store(store: schemas.StoreCreate, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         current_store = Store()
-        current_store.name = Store.process_name(store.name, auth_user)
-        current_store.username = auth_user.username
-
         current_store.created_at = datetime.utcnow()
-        current_store.updated_at = datetime.utcnow()
+        current_store.user = auth_user
+        current_store.set_name(store.name)
 
         db.add(current_store)
         db.commit()
@@ -123,9 +120,7 @@ def update_store(store: schemas.StoreUpdate, auth_user: User = Depends(get_curre
     try:
         current_store = Store.get(store.id, auth_user, db)
         if store.name is not None:
-            current_store.name = Store.process_name(store.name, auth_user, current_store.name)
-
-        current_store.updated_at = datetime.utcnow()
+            current_store.set_name(store.name)
 
         db.commit()
     except LookupError as e:
