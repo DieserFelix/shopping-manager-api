@@ -82,11 +82,10 @@ def create_item(list_id: int, item: schemas.ListItemCreate, auth_user: User = De
         article = Article.get(item.article_id, auth_user, db)
         if list.hasArticle(article):
             raise ValueError(f"Shopping list {list.id} already contains article {article.name}")
-        current_item = ShoppingListItem()
-        current_item.list_id = list.id
-        current_item.article_id = article.id
-        current_item.amount = ShoppingListItem.process_amount(item.amount)
-        current_item.username = auth_user.username
+        current_item = ShoppingListItem.create(auth_user)
+        current_item.set_list(list)
+        current_item.set_article(article)
+        current_item.set_amount(item.amount)
 
         list.updated_at = datetime.utcnow()
         db.add(current_item)
@@ -121,11 +120,10 @@ def update_item(list_id: int, item: schemas.ListItemUpdate, auth_user: User = De
             article = Article.get(item.article_id, auth_user, db)
             if list.hasArticle(article):
                 raise ValueError(f"Shopping list {list.id} already contains article {article.name}")
-            current_item.article_id = article.id
+            current_item.set_article(article)
         if item.amount is not None:
-            current_item.amount = ShoppingListItem.process_amount(item.amount)
+            current_item.set_amount(item.amount)
 
-        list.updated_at = datetime.utcnow()
         db.commit()
     except LookupError as e:
         raise HTTPException(status_code=404, detail=str(e))

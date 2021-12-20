@@ -1,38 +1,103 @@
-from typing import Optional
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
+from pydantic.class_validators import validator
+
+
+class Price(BaseModel):
+    price: float
+    currency: str
+    created_at: datetime
+    article_id: int
+
+    class Config:
+        orm_mode = True
+
+
+class PriceCreate(BaseModel):
+    price: float
+    currency: str
 
 
 class ArticleCreate(BaseModel):
     name: str
     detail: Optional[str]
-    category_id: int
-    store_id: int
-    price: float
+    store: Optional[str]
+    category: Optional[str]
+    brand: Optional[str]
+    price: PriceCreate
 
 
 class ArticleUpdate(BaseModel):
     id: int
     name: Optional[str]
     detail: Optional[str]
-    store_id: Optional[int]
-    category_id: Optional[int]
-    price: Optional[float]
+    store: Optional[str]
+    category: Optional[str]
+    brand: Optional[str]
+    price: Optional[PriceCreate]
 
 
 class Article(BaseModel):
     id: int
     name: str
     detail: str
-    store_id: int
-    category_id: int
+    store: Any
+    category: Any
+    brand: Any
+    price: Any
+    created_at: datetime
+    updated_at: datetime
+
+    @validator("price")
+    def validate_price(cls, price):
+        return price()
+
+    @validator("store")
+    def validate_store(cls, store):
+        if store:
+            return store.name
+        return ""
+
+    @validator("category")
+    def validate_category(cls, category):
+        if category:
+            return category.name
+        return ""
+
+    @validator("brand")
+    def validate_brand(cls, brand):
+        if brand:
+            return brand.name
+        return ""
 
     class Config:
         orm_mode = True
 
-
-class Price(BaseModel):
-    price: float
-    currency: str
-
-    class Config:
-        orm_mode = True
+        def schema_extra(schema: Dict[str, Any]) -> None:
+            schema["properties"]["price"] = {
+                "title": "Price",
+                "type": "object",
+                "properties": {
+                    "price": {
+                        "title": "Price",
+                        "type": "number"
+                    },
+                    "currency": {
+                        "title": "Currency",
+                        "type": "string"
+                    }
+                }
+            }
+            schema["properties"]["store"] = {
+                "title": "Store",
+                "type": "string"
+            }
+            schema["properties"]["category"] = {
+                "title": "Category",
+                "type": "string"
+            }
+            schema["properties"]["brand"] = {
+                "title": "Brand",
+                "type": "string"
+            }

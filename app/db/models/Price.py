@@ -16,7 +16,7 @@ class Price(Base):
     id: int = Column(Integer, primary_key=True, autoincrement=True)
 
     price: float = Column(Float, nullable=False)
-    valid_at: datetime = Column(DateTime)
+    created_at: datetime = Column(DateTime)
     currency: str = Column(String(32), nullable=False)
 
     article_id: int = Column(Integer, ForeignKey("Article.id", ondelete="CASCADE"), nullable=False)
@@ -27,6 +27,14 @@ class Price(Base):
 
     def __str__(self) -> str:
         return str(self.price)
+
+    @staticmethod
+    def create(user: models.User) -> Price:
+        price = Price()
+        price.created_at = datetime.utcnow()
+        price.user = user
+
+        return price
 
     @staticmethod
     def get(price_id: Any, user: models.User, db: Session) -> Price:
