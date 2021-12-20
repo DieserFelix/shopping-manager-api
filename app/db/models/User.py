@@ -23,6 +23,7 @@ class User(Base):
     articles: List[models.Article] = relationship("Article", back_populates="user", cascade="all, delete, delete-orphan")
     categories: List[models.Category] = relationship("Category", back_populates="user", cascade="all, delete, delete-orphan")
     stores: List[models.Store] = relationship("Store", back_populates="user", cascade="all, delete, delete-orphan")
+    brands: List[models.Brand] = relationship("Brand", back_populates="user", cascade="all, delete, delete-orphan")
     prices: List[models.Price] = relationship("Price", back_populates="user", cascade="all, delete, delete-orphan")
 
     @staticmethod

@@ -2,11 +2,10 @@ from datetime import datetime
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from starlette.responses import Response
-from app.db.models import Article, Store, Category, Price, User
+from app.db.models import Article, Brand, Store, Category, Price, User
 from app.lib import get_current_user, get_db
 from app.lib.pagination import ArticleColumns, PaginationDefaults
 import app.schemas as schemas
-import app.routers as routers
 from sqlalchemy.orm import Session
 
 articles = APIRouter(
@@ -59,8 +58,9 @@ def read_articles(
             else article.price().price if sort_by == ArticleColumns.PRICE    #yapf:disable
             else (article.store.name if article.store else "") if sort_by == ArticleColumns.STORE    #yapf:disable
             else (article.category.name if article.category else "") if sort_by == ArticleColumns.CATEGORY    #yapf:disable
+            else (article.brand.name if article.brand else "") if sort_by == ArticleColumns.BRAND    #yapf:disable
             else article.updated_at,    #yapf:disable  
-            reverse=asc != PaginationDefaults.ASC
+            reverse=True if sort_by == ArticleColumns.UPDATED_AT else asc != PaginationDefaults.ASC
         )
 
         if page * limit >= len(articles):
@@ -157,6 +157,8 @@ def create_article(article: schemas.ArticleCreate, auth_user: User = Depends(get
             set_store(current_article, article.store, auth_user, db)
         if article.category is not None:
             set_category(current_article, article.category, auth_user, db)
+        if article.brand is not None:
+            set_brand(current_article, article.brand, auth_user, db)
         current_article.set_name(article.name)
         if article.detail is not None:
             current_article.set_detail(article.detail)
@@ -197,6 +199,9 @@ def update_article(article: schemas.ArticleUpdate, auth_user: User = Depends(get
             current_article.set_name(current_article.name)
         if article.category is not None:
             set_category(current_article, article.category, auth_user, db)
+            current_article.set_name(current_article.name)
+        if article.brand is not None:
+            set_brand(current_article, article.brand, auth_user, db)
             current_article.set_name(current_article.name)
         if article.name is not None:
             current_article.set_name(article.name)
@@ -239,6 +244,7 @@ def delete_article(article_id: int, auth_user: User = Depends(get_current_user),
             raise ValueError("There are shopping lists containing this article")
         set_store(current_article, "", auth_user, db)
         set_category(current_article, "", auth_user, db)
+        set_brand(current_article, "", auth_user, db)
 
         db.delete(current_article)
         db.commit()
@@ -285,3 +291,20 @@ def set_category(article: Article, category_name: str, user: User, db: Session) 
     if article.category != previous_category and previous_category is not None:
         if len(previous_category.articles) == 0:
             db.delete(previous_category)
+
+
+def set_brand(article: Article, brand_name: str, user: User, db: Session) -> None:
+    if brand_name:
+        try:
+            brand = Brand.byName(brand_name, user, db)
+        except:
+            brand = Brand.create(user)
+            brand.set_name(brand_name)
+    else:
+        brand = None
+
+    previous_brand = article.brand
+    article.set_brand(brand)
+    if article.brand != previous_brand and previous_brand is not None:
+        if len(previous_brand.articles) == 0:
+            db.delete(previous_brand)

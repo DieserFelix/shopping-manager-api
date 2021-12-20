@@ -3,6 +3,7 @@ from app.db.models.User import User
 from app.db.models.Article import Article
 from app.db.models.Category import Category
 from app.db.models.Store import Store
+from app.db.models.Brand import Brand
 from app.db.models.Price import Price
 from app.db.models.ShoppingList import ShoppingList
 from app.db.models.ShoppingListItem import ShoppingListItem

@@ -22,8 +22,9 @@ class PriceCreate(BaseModel):
 class ArticleCreate(BaseModel):
     name: str
     detail: Optional[str]
-    category: str
-    store: str
+    store: Optional[str]
+    category: Optional[str]
+    brand: Optional[str]
     price: PriceCreate
 
 
@@ -33,6 +34,7 @@ class ArticleUpdate(BaseModel):
     detail: Optional[str]
     store: Optional[str]
     category: Optional[str]
+    brand: Optional[str]
     price: Optional[PriceCreate]
 
 
@@ -42,6 +44,7 @@ class Article(BaseModel):
     detail: str
     store: Any
     category: Any
+    brand: Any
     price: Any
     created_at: datetime
     updated_at: datetime
@@ -60,6 +63,12 @@ class Article(BaseModel):
     def validate_category(cls, category):
         if category:
             return category.name
+        return ""
+
+    @validator("brand")
+    def validate_brand(cls, brand):
+        if brand:
+            return brand.name
         return ""
 
     class Config:
@@ -86,5 +95,9 @@ class Article(BaseModel):
             }
             schema["properties"]["category"] = {
                 "title": "Category",
+                "type": "string"
+            }
+            schema["properties"]["brand"] = {
+                "title": "Brand",
                 "type": "string"
             }

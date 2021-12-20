@@ -22,11 +22,13 @@ class Article(Base):
 
     store_id: int = Column(Integer, ForeignKey("Store.id"), nullable=True)
     category_id: int = Column(Integer, ForeignKey("Category.id"), nullable=True)
+    brand_id: int = Column(Integer, ForeignKey("Brand.id"), nullable=True)
 
     username: str = Column(String(32), ForeignKey("User.username", ondelete="CASCADE"), nullable=False)
 
-    category: models.Category = relationship("Category", back_populates="articles", uselist=False)
     store: models.Store = relationship("Store", back_populates="articles", uselist=False)
+    category: models.Category = relationship("Category", back_populates="articles", uselist=False)
+    brand: models.Brand = relationship("Brand", back_populates="articles", uselist=False)
     prices: List[models.Price] = relationship("Price", back_populates="article", cascade="all, delete")
     user: models.User = relationship("User", back_populates="articles")
 
@@ -63,6 +65,11 @@ class Article(Base):
     def set_category(self, category: models.Category) -> None:
         if category != self.category:
             self.category = category
+            self.updated_at = datetime.utcnow()
+
+    def set_brand(self, brand: models.Brand) -> None:
+        if brand != self.brand:
+            self.brand = brand
             self.updated_at = datetime.utcnow()
 
     @staticmethod

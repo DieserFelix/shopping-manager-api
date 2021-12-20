@@ -11,8 +11,9 @@ class ArticleColumns(str, Enum):
     NAME = "name"
     PRICE = "price"
     UPDATED_AT = "updated_at"
-    CATEGORY = "category"
     STORE = "store"
+    CATEGORY = "category"
+    BRAND = "brand"
 
 
 class StoreColumns(str, Enum):
@@ -21,5 +22,10 @@ class StoreColumns(str, Enum):
 
 
 class CategoryColumns(str, Enum):
+    NAME = "name"
+    UPDATED_AT = "updated_at"
+
+
+class BrandColumns(str, Enum):
     NAME = "name"
     UPDATED_AT = "updated_at"
