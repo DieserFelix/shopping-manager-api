@@ -82,9 +82,7 @@ def create_item(list_id: int, item: schemas.ListItemCreate, auth_user: User = De
         article = Article.get(item.article_id, auth_user, db)
         if list.hasArticle(article):
             raise ValueError(f"Shopping list {list.id} already contains article {article.name}")
-        current_item = ShoppingListItem()
-        current_item.created_at = datetime.utcnow()
-        current_item.user = auth_user
+        current_item = ShoppingListItem.create(auth_user)
         current_item.set_list(list)
         current_item.set_article(article)
         current_item.set_amount(item.amount)
