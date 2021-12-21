@@ -45,7 +45,9 @@ def read_brands(
             brands = auth_user.brands
 
         brands = sorted(
-            brands, key=lambda brand: brand.name.lower() if sort_by == BrandColumns.NAME else brand.updated_at, reverse=asc != PaginationDefaults.ASC
+            brands,
+            key=lambda brand: brand.name.casefold() if sort_by == BrandColumns.NAME else brand.updated_at,
+            reverse=asc != PaginationDefaults.ASC
         )
 
         if page * limit >= len(brands):

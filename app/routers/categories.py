@@ -46,7 +46,7 @@ def read_categories(
 
         categories = sorted(
             categories,
-            key=lambda category: category.name.lower() if sort_by == CategoryColumns.NAME else category.updated_at,
+            key=lambda category: category.name.casefold() if sort_by == CategoryColumns.NAME else category.updated_at,
             reverse=asc != PaginationDefaults.ASC
         )
 

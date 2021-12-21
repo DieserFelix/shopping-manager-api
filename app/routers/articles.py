@@ -28,8 +28,6 @@ articles = APIRouter(
 )
 def read_articles(
     name: str = None,
-    store: str = None,
-    category: str = None,
     sort_by: ArticleColumns = ArticleColumns.UPDATED_AT,
     page: int = PaginationDefaults.FIRST_PAGE,
     asc: int = PaginationDefaults.ASC,
@@ -47,20 +45,15 @@ def read_articles(
         else:
             articles = auth_user.articles
 
-        if store:
-            articles = [article for article in articles if article.store.name == store]
-        if category:
-            articles = [article for article in articles if article.category.name == category]
-
         articles = sorted(
             articles,
-            key=lambda article: article.name.lower() if sort_by == ArticleColumns.NAME    #yapf:disable
+            key=lambda article: article.name.casefold() if sort_by == ArticleColumns.NAME    #yapf:disable
             else article.price().price if sort_by == ArticleColumns.PRICE    #yapf:disable
-            else (article.store.name if article.store else "") if sort_by == ArticleColumns.STORE    #yapf:disable
-            else (article.category.name if article.category else "") if sort_by == ArticleColumns.CATEGORY    #yapf:disable
-            else (article.brand.name if article.brand else "") if sort_by == ArticleColumns.BRAND    #yapf:disable
+            else (article.store.name.casefold() if article.store else "") if sort_by == ArticleColumns.STORE    #yapf:disable
+            else (article.category.name.casefold() if article.category else "") if sort_by == ArticleColumns.CATEGORY    #yapf:disable
+            else (article.brand.name.casefold() if article.brand else "") if sort_by == ArticleColumns.BRAND    #yapf:disable
             else article.updated_at,    #yapf:disable  
-            reverse=True if sort_by == ArticleColumns.UPDATED_AT else asc != PaginationDefaults.ASC
+            reverse=asc != PaginationDefaults.ASC
         )
 
         if page * limit >= len(articles):
