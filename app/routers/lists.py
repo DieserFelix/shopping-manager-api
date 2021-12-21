@@ -1,12 +1,15 @@
 from datetime import datetime
-from typing import List
+from typing import Dict, List
 from fastapi import APIRouter, Depends, HTTPException
 from starlette.responses import Response
 from app.db.models import User, Category, ShoppingList
+from app.db.models.ShoppingListItem import ShoppingListItem
 from app.lib import get_current_user, get_db, UserRoles
 from app.lib.pagination import ListColumns, PaginationDefaults
 import app.schemas as schemas
 from sqlalchemy.orm import Session
+
+from app.schemas.HTTPError import HTTPError
 
 lists = APIRouter(
     prefix="/api/lists",
@@ -96,7 +99,48 @@ def read_list_costs(list_id: int, auth_user: User = Depends(get_current_user), d
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     else:
-        return list.costs()
+        return list.cost()
+
+
+@lists.get(
+    "/{list_id}/markdown",
+    response_model=str,
+    responses={
+        200: dict(description="Markdown representation of this shopping list."),
+        404: dict(description="Shopping list <list_id> does not exist", model=schemas.HTTPError)
+    }
+)
+def export_list(list_id: int, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    try:
+        list = ShoppingList.get(list_id, auth_user, db)
+        stores: Dict[str, List[ShoppingListItem]] = {}
+        for item in list.items:
+            store = item.article.store.name if item.article.store else "No store specified"
+            if store not in stores.keys():
+                stores[store] = []
+            stores[store].append(item)
+
+        markdown = f"# {list.title}"
+        total_cost = 0
+        for store, items in stores.items():
+            markdown += f"\n## {store}"
+            store_cost = 0
+            for item in items:
+                store_cost += item.amount * item.price().price
+                markdown += f"\n* [ ] {int(item.amount) if item.amount.is_integer() else item.amount} x {item.article.name}"
+            total_cost += store_cost
+            store_cost = str(int(store_cost)) + "." + str(store_cost).split(".")[1][0:2]
+            markdown += f"\n\nExpected cost: {store_cost}"
+        markdown += "\n---"
+        total_cost = str(int(total_cost)) + "." + str(total_cost).split(".")[1][0:2]
+        markdown += f"\nExpected total cost: {total_cost}"
+
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    else:
+        return markdown
 
 
 @lists.post(
