@@ -24,10 +24,22 @@ class ShoppingList(Base):
     user: models.User = relationship("User", back_populates="lists")
 
     items: List[models.ShoppingListItem] = relationship("ShoppingListItem", back_populates="parent", cascade="all, delete")
-    costs: List[models.ShoppingListCost] = relationship("ShoppingListCost", back_populates="list", cascade="all, delete")
 
     def __str__(self) -> str:
         return self.title
+
+    def filter_items(self, name: str) -> List[models.ShoppingListItem]:
+        if not isinstance(name, str) or not name:
+            raise ValueError("Invalid name")
+
+        name: str = bleach.clean(name.strip(), tags=[])
+
+        list_items: List[models.ShoppingListItem] = []
+        for item in self.items:
+            if name.casefold() in item.article.name.casefold():
+                list_items.append(item)
+
+        return list_items
 
     def set_title(self, title: Any) -> None:
         title = ShoppingList.process_title(title)
@@ -56,11 +68,17 @@ class ShoppingList(Base):
 
     def cost(self):
         cost = dict()
+        uncategorized_cost: float = 0
         for item in self.items:
-            if item.article.category_id not in cost.keys():
-                cost[item.article.category_id] = 0
-            cost[item.article.category_id] += item.amount * item.price().price
+            item_cost = item.amount * item.price().price
+            if item.article.category:
+                if item.article.category.name not in cost.keys():
+                    cost[item.article.category.name] = 0
+                cost[item.article.category.name] += item_cost
+            else:
+                uncategorized_cost += item_cost
 
+        cost["uncategorized"] = uncategorized_cost
         cost["total"] = sum([cost[category] for category in cost.keys()])
         return cost
 
@@ -87,6 +105,20 @@ class ShoppingList(Base):
                 raise LookupError(f"No such list: {list_id}")
 
         return shopping_list
+
+    @staticmethod
+    def find(title: Any, user: models.User) -> List[ShoppingList]:
+        if not isinstance(title, str) or not title:
+            raise ValueError("Invalid name")
+
+        title: str = bleach.clean(title.strip(), tags=[])
+
+        lists: List[ShoppingList] = []
+        for list in user.lists:
+            if title.casefold() in list.title.casefold():
+                lists.append(list)
+
+        return lists
 
     @staticmethod
     def process_title(title: Any) -> str:

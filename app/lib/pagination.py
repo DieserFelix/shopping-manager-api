@@ -29,3 +29,18 @@ class CategoryColumns(str, Enum):
 class BrandColumns(str, Enum):
     NAME = "name"
     UPDATED_AT = "updated_at"
+
+
+class ListColumns(str, Enum):
+    TITLE = "title",
+    UPDATED_AT = "updated_at"
+    FINALIZED = "finalized"
+    COST = "cost"
+    CATEGORY = "category"
+
+
+class ListItemColumns(str, Enum):
+    NAME = "name",
+    UPDATED_AT = "updated_at",
+    COST = "cost",
+    AMOUNT = "amount"

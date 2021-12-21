@@ -2,8 +2,9 @@ from datetime import datetime
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from starlette.responses import Response
-from app.db.models import User, Category, ShoppingList, ShoppingListCost
+from app.db.models import User, Category, ShoppingList
 from app.lib import get_current_user, get_db, UserRoles
+from app.lib.pagination import ListColumns, PaginationDefaults
 import app.schemas as schemas
 from sqlalchemy.orm import Session
 
@@ -21,13 +22,39 @@ lists = APIRouter(
     response_model=List[schemas.List],
     responses={200: dict(description="List of shopping lists created by the current user, possibly filtered by date.")}
 )
-def read_lists(from_date: datetime = None, to_date: datetime = None, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def read_lists(
+    title: str = None,
+    sort_by: ListColumns = ListColumns.UPDATED_AT,
+    page: int = PaginationDefaults.FIRST_PAGE,
+    asc: int = PaginationDefaults.ASC,
+    limit: int = PaginationDefaults.LIMIT,
+    auth_user: User = Depends(get_current_user),
+):
     try:
-        if not from_date:
-            from_date = datetime.min
-        if not to_date:
-            to_date = datetime.max
-        lists = [list for list in auth_user.lists if list.updated_at >= from_date and list.updated_at <= to_date]
+        if page < 1 or limit < 1:
+            raise ValueError(f"Invalid pagination parameters")
+        page -= 1
+
+        lists: List[ShoppingList]
+        if title:
+            lists = ShoppingList.find(title, auth_user)
+        else:
+            lists = auth_user.lists
+
+        lists = sorted(
+            lists,
+            key=lambda list: list.title.casefold() if sort_by == ListColumns.TITLE    #yapf:disable
+            else list.cost()["total"] if sort_by == ListColumns.COST    #yapf:disable
+            else list.finalized if sort_by == ListColumns.FINALIZED    #yapf:disable
+            else (list.category.name.casefold() if list.category else "") if sort_by == ListColumns.CATEGORY    #yapf:disable
+            else list.updated_at,    #yapf:disable  
+            reverse=asc != PaginationDefaults.ASC
+        )
+
+        if page * limit >= len(lists):
+            lists = []
+        else:
+            lists = lists[page * limit:page * limit + limit]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     else:
@@ -63,32 +90,13 @@ def read_list(list_id: int, auth_user: User = Depends(get_current_user), db: Ses
 def read_list_costs(list_id: int, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         list = ShoppingList.get(list_id, auth_user, db)
-        if list.areCostsUpToDate():
-            costs = dict()
-            for cost in list.costs:
-                if cost.category:
-                    costs[cost.category.id] = cost.cost
-                else:
-                    costs["total"] = cost.cost
-        else:
-            for cost in list.costs:
-                db.delete(cost)
-            costs = list.cost()
-            for category_id, cost in costs.items():
-                if category_id == "total":
-                    category_id = None
-                current_cost = ShoppingListCost.create(list)
-                current_cost.cost = cost
-                current_cost.category_id = category_id
-                db.add(current_cost)
-            db.commit()
 
     except LookupError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     else:
-        return costs
+        return list.costs()
 
 
 @lists.post(
