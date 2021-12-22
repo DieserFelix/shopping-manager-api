@@ -45,7 +45,9 @@ def read_stores(
             stores = auth_user.stores
 
         stores = sorted(
-            stores, key=lambda store: store.name.lower() if sort_by == StoreColumns.NAME else store.updated_at, reverse=asc != PaginationDefaults.ASC
+            stores,
+            key=lambda store: store.name.casefold() if sort_by == StoreColumns.NAME else store.updated_at,
+            reverse=asc != PaginationDefaults.ASC
         )
 
         if page * limit >= len(stores):

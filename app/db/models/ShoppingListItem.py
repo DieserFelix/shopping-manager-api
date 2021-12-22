@@ -6,6 +6,7 @@ from sqlalchemy import Column, Integer, ForeignKey, String, Float, DateTime
 from sqlalchemy.orm import Session, relationship
 from app.lib import UserRoles
 import app.db.models as models
+import app.schemas as schemas
 
 
 class ShoppingListItem(Base):
@@ -14,6 +15,7 @@ class ShoppingListItem(Base):
     id: int = Column(Integer, primary_key=True, autoincrement=True)
     article_id: int = Column(Integer, ForeignKey("Article.id", ondelete="CASCADE"), nullable=False)
     amount: float = Column(Float)
+    offer_price: float = Column(Float, nullable=True)
 
     created_at: datetime = Column(DateTime)
     updated_at: datetime = Column(DateTime)
@@ -29,11 +31,14 @@ class ShoppingListItem(Base):
     def __str__(self) -> str:
         return f"{self.amount}x{self.article.name}"
 
-    def price(self) -> models.Price:
-        return self.article.price(self.parent.updated_at)
+    def price(self) -> schemas.PriceCreate:
+        regular_price = self.article.price(self.parent.updated_at)
+        if (self.offer_price):
+            return schemas.PriceCreate(price=self.offer_price, currency=regular_price.currency)
+        return regular_price
 
     def set_article(self, article: models.Article) -> None:
-        if article == self.article:
+        if article != self.article:
             self.article = article
             self.updated_at = datetime.utcnow()
             self.parent.updated_at = self.updated_at
@@ -48,6 +53,17 @@ class ShoppingListItem(Base):
     def set_list(self, list: models.ShoppingList):
         if list != self.parent:
             self.parent = list
+            self.updated_at = datetime.utcnow()
+            self.parent.updated_at = self.updated_at
+
+    def set_price(self, price: Any) -> None:
+        offer_price = ShoppingListItem.process_price(price)
+        regular_price = self.article.price(self.parent.updated_at)
+        if offer_price != self.offer_price:
+            if offer_price == regular_price.price:
+                self.offer_price = None
+            else:
+                self.offer_price = offer_price
             self.updated_at = datetime.utcnow()
             self.parent.updated_at = self.updated_at
 
@@ -85,3 +101,14 @@ class ShoppingListItem(Base):
             raise ValueError("Shopping lists cannot contain items less than or equal to 0 times")
 
         return amount
+
+    @staticmethod
+    def process_price(price: Any) -> str:
+        try:
+            price = float(price)
+            if price <= 0:
+                raise Exception()
+        except:
+            raise ValueError("List items have to cost more than 0")
+
+        return price

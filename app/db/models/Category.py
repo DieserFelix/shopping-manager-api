@@ -21,7 +21,6 @@ class Category(Base):
     username: str = Column(String(32), ForeignKey("User.username", ondelete="CASCADE"), nullable=False)
 
     lists: List[models.ShoppingList] = relationship("ShoppingList", back_populates="category")
-    costs: List[models.ShoppingListCost] = relationship("ShoppingListCost", back_populates="category", cascade="all, delete")
     articles: List[models.Article] = relationship("Article", back_populates="category")
     user: models.User = relationship("User", back_populates="categories")
 
@@ -90,11 +89,12 @@ class Category(Base):
 
     @staticmethod
     def process_name(name: Any, user: models.User, reference: Category) -> str:
-        print(name)
         if not isinstance(name, str) or not name:
             raise LookupError("Invalid name")
 
         name: str = bleach.clean(name.strip(), tags=[])
+        if name == "uncategorized":
+            raise LookupError("Invalid name")
 
         names = [category.name.casefold() for category in user.categories if reference != category]
         if name.casefold() in names:

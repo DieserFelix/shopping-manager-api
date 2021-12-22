@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from starlette.responses import Response
 from app.db.models import User, ShoppingList, ShoppingListItem, Article
 from app.lib import get_current_user, get_db, UserRoles
+from app.lib.pagination import ListColumns, ListItemColumns, PaginationDefaults
 import app.schemas as schemas
 from sqlalchemy.orm import Session
 
@@ -24,21 +25,54 @@ list_items = APIRouter(
         404: dict(description="Shopping list <list_id> does not exist.", model=schemas.HTTPError)
     }
 )
-def read_items(list_id: int, sort_by: str = None, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def read_items(
+    list_id: int,
+    name: str = None,
+    sort_by: ListItemColumns = ListItemColumns.UPDATED_AT,
+    page: int = PaginationDefaults.FIRST_PAGE,
+    asc: int = PaginationDefaults.ASC,
+    limit: int = PaginationDefaults.LIMIT,
+    auth_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     try:
-        current_list = ShoppingList.get(list_id, auth_user, db)
-        items = current_list.items
-        if sort_by == "name":
-            items = sorted(items, key=lambda item: item.article.name)
-        elif sort_by == "category":
-            items = sorted(items, key=lambda item: item.article.category.name)
+        list = ShoppingList.get(list_id, auth_user, db)
+
+        if page < 1 or limit < 1:
+            raise ValueError(f"Invalid pagination parameters")
+        page -= 1
+
+        list_items: List[ShoppingListItem]
+        if name:
+            list_items = list.filter_items(name)
+        else:
+            list_items = list.items
+
+        list_items = sorted(
+            list_items,
+            key=lambda item: item.article.name.casefold() if sort_by == ListItemColumns.NAME    #yapf:disable
+            else item.amount * item.price().price if sort_by == ListItemColumns.COST    #yapf:disable
+            else item.amount if sort_by == ListItemColumns.AMOUNT    #yapf:disable
+            else (item.article.store.name.casefold() if item.article.store else ("z" * 1000).casefold())
+            if sort_by == ListItemColumns.STORE    #yapf:disable
+            else (item.article.category.name.casefold() if item.article.category else ("z" * 1000).casefold())
+            if sort_by == ListItemColumns.CATEGORY    #yapf:disable
+            else (item.article.brand.name.casefold() if item.article.brand else ("z" * 1000).casefold())
+            if sort_by == ListItemColumns.BRAND    #yapf:disable
+            else item.updated_at,    #yapf:disable  
+            reverse=asc != PaginationDefaults.ASC
+        )
+
+        if page * limit >= len(list_items):
+            list_items = []
+        else:
+            list_items = list_items[page * limit:page * limit + limit]
     except LookupError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     else:
-        return items
+        return list_items
 
 
 @list_items.get(
@@ -49,7 +83,7 @@ def read_items(list_id: int, sort_by: str = None, auth_user: User = Depends(get_
         404: dict(description="Shopping list <list_id> or item <item_id> does not exist.", model=schemas.HTTPError)
     }
 )
-def read_items(list_id: int, item_id: int, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def read_item(list_id: int, item_id: int, auth_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         current_list = ShoppingList.get(list_id, auth_user, db)
         current_item = ShoppingListItem.get(item_id, auth_user, db)
@@ -86,8 +120,9 @@ def create_item(list_id: int, item: schemas.ListItemCreate, auth_user: User = De
         current_item.set_list(list)
         current_item.set_article(article)
         current_item.set_amount(item.amount)
+        if item.price is not None:
+            current_item.set_price(item.price.price)
 
-        list.updated_at = datetime.utcnow()
         db.add(current_item)
         db.commit()
     except LookupError as e:
@@ -118,11 +153,13 @@ def update_item(list_id: int, item: schemas.ListItemUpdate, auth_user: User = De
         current_item = ShoppingListItem.get(item.id, auth_user, db)
         if item.article_id is not None:
             article = Article.get(item.article_id, auth_user, db)
-            if list.hasArticle(article):
+            if current_item.article != article and list.hasArticle(article):
                 raise ValueError(f"Shopping list {list.id} already contains article {article.name}")
             current_item.set_article(article)
         if item.amount is not None:
             current_item.set_amount(item.amount)
+        if item.price is not None:
+            current_item.set_price(item.price.price)
 
         db.commit()
     except LookupError as e:

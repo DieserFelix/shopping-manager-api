@@ -2,16 +2,20 @@ from typing import Any, Dict, Optional
 from pydantic import BaseModel, validator
 from datetime import datetime
 
+from app.schemas.Article import PriceCreate
+
 
 class ListItemCreate(BaseModel):
     article_id: int
     amount: float
+    price: Optional[PriceCreate]
 
 
 class ListItemUpdate(BaseModel):
     id: int
     article_id: Optional[int]
     amount: Optional[float]
+    price: Optional[PriceCreate]
 
 
 class ListItem(BaseModel):
