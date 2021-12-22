@@ -44,3 +44,6 @@ class ListItemColumns(str, Enum):
     UPDATED_AT = "updated_at",
     COST = "cost",
     AMOUNT = "amount"
+    STORE = "store"
+    CATEGORY = "category"
+    BRAND = "brand"

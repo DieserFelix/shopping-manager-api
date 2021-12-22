@@ -53,6 +53,12 @@ def read_items(
             key=lambda item: item.article.name.casefold() if sort_by == ListItemColumns.NAME    #yapf:disable
             else item.amount * item.price().price if sort_by == ListItemColumns.COST    #yapf:disable
             else item.amount if sort_by == ListItemColumns.AMOUNT    #yapf:disable
+            else (item.article.store.name.casefold() if item.article.store else ("z" * 1000).casefold())
+            if sort_by == ListItemColumns.STORE    #yapf:disable
+            else (item.article.category.name.casefold() if item.article.category else ("z" * 1000).casefold())
+            if sort_by == ListItemColumns.CATEGORY    #yapf:disable
+            else (item.article.brand.name.casefold() if item.article.brand else ("z" * 1000).casefold())
+            if sort_by == ListItemColumns.BRAND    #yapf:disable
             else item.updated_at,    #yapf:disable  
             reverse=asc != PaginationDefaults.ASC
         )

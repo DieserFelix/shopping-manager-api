@@ -49,9 +49,10 @@ def read_articles(
             articles,
             key=lambda article: article.name.casefold() if sort_by == ArticleColumns.NAME    #yapf:disable
             else article.price().price if sort_by == ArticleColumns.PRICE    #yapf:disable
-            else (article.store.name.casefold() if article.store else "") if sort_by == ArticleColumns.STORE    #yapf:disable
-            else (article.category.name.casefold() if article.category else "") if sort_by == ArticleColumns.CATEGORY    #yapf:disable
-            else (article.brand.name.casefold() if article.brand else "") if sort_by == ArticleColumns.BRAND    #yapf:disable
+            else (article.store.name.casefold() if article.store else ("z" * 1000).casefold()) if sort_by == ArticleColumns.STORE    #yapf:disable
+            else (article.category.name.casefold() if article.category else ("z" * 1000).casefold())
+            if sort_by == ArticleColumns.CATEGORY    #yapf:disable
+            else (article.brand.name.casefold() if article.brand else ("z" * 1000).casefold()) if sort_by == ArticleColumns.BRAND    #yapf:disable
             else article.updated_at,    #yapf:disable  
             reverse=asc != PaginationDefaults.ASC
         )

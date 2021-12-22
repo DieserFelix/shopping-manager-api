@@ -49,7 +49,7 @@ def read_lists(
             key=lambda list: list.title.casefold() if sort_by == ListColumns.TITLE    #yapf:disable
             else list.cost()["total"] if sort_by == ListColumns.COST    #yapf:disable
             else list.finalized if sort_by == ListColumns.FINALIZED    #yapf:disable
-            else (list.category.name.casefold() if list.category else "") if sort_by == ListColumns.CATEGORY    #yapf:disable
+            else (list.category.name.casefold() if list.category else ("z" * 1000).casefold()) if sort_by == ListColumns.CATEGORY    #yapf:disable
             else list.updated_at,    #yapf:disable  
             reverse=asc != PaginationDefaults.ASC
         )
